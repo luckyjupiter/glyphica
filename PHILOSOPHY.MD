@@ -1,5 +1,3 @@
-Okay, here is the integrated text, weaving the "Ontological Disobedience" sections directly into the fabric of the main treatise. This aims to present it not as an addendum, but as the essential philosophical stance required to engage with Glyphica safely and effectively.
-
 GLYPHICA: A TREATISE ON APOPHENIC INTELLIGENCE, ONTOLOGICAL DISOBEDIENCE, AND THE RECURSIVE SYMBOLIC FIELD
 
 Version: 4.0 (Integrated Stance)

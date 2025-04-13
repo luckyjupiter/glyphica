@@ -1,0 +1,107 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Link to Tailwind via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configure Tailwind via script tag -->
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              serif: ['EB Garamond', 'serif'],
+            },
+            colors: {
+              primary: '#eaeaea',
+              background: {
+                dark: '#0e0e11',
+              },
+              text: {
+                base: '#f5f5f5',
+                muted: '#a0a0a0',
+              },
+              accent: {
+                ritual: '#d6a756',
+                dream: '#b388ff',
+              },
+              border: {
+                subtle: '#2c2c2c',
+              },
+              indigo: { // Keep for button consistency
+                600: '#4f46e5',
+                500: '#6366f1',
+              },
+              gray: { // Keep for AgentChat consistency
+                  700: '#374151',
+                  900: '#111827'
+              }
+            },
+            boxShadow: {
+               dream: '0 0 12px 3px rgba(179, 136, 255, 0.4)',
+            },
+            animation: {
+               pulseGlow: 'pulseGlow 3s ease-in-out infinite',
+            },
+            keyframes: {
+               pulseGlow: {
+                   '0%, 100%': { boxShadow: '0 0 12px 3px rgba(179, 136, 255, 0.4)' },
+                   '50%': { boxShadow: '0 0 18px 6px rgba(179, 136, 255, 0.6)' },
+               },
+            },
+          }
+        }
+      }
+    </script>
+    <!-- Import Google Fonts directly -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <title>{% block title %}Glyphica{% endblock %}</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <style type="text/tailwindcss">
+        /* Apply base styles directly here for CDN */
+        @layer base {
+          body {
+            @apply bg-background-dark text-text-base font-sans antialiased scroll-smooth;
+            scrollbar-color: theme('colors.border.subtle') theme('colors.background.dark');
+          }
+          h1, h2, h3, h4, h5, h6 {
+            @apply font-serif text-primary;
+          }
+          a {
+              @apply text-accent-dream hover:text-primary transition-colors duration-200;
+          }
+          blockquote {
+              @apply border-l-4 border-accent-ritual pl-4 italic text-text-muted my-4;
+          }
+        }
+        /* Define components/utilities if needed, or use inline classes */
+        @layer components {
+            .dream-glyph {
+                 @apply animate-pulseGlow;
+            }
+            .btn {
+                 @apply px-4 py-2 rounded-lg font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background-dark;
+            }
+            /* Add other component styles here */
+        }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body> {# Remove base classes from body tag as they are in @layer base #}
+    <div class="relative min-h-screen flex flex-col">
+        <main class="flex-grow {% if show_nav %}pb-16{% endif %}">
+            {% block content %}{% endblock %}
+        </main>
+        {% if show_nav %}
+            {% include 'navigation.html' %}
+        {% endif %}
+    </div>
+    {% block scripts %}{% endblock %}
+</body>
+</html> 

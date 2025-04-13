@@ -1,0 +1,33 @@
+<!-- templates/navigation.html -->
+<nav class="fixed bottom-0 left-0 w-full bg-background-dark/80 backdrop-blur-sm border-t border-border-subtle z-50 flex justify-around items-center h-16">
+    {% set nav_items = [
+        ('home', '🜁', 'Sanctum', 'Enter the quiet. Containment precedes insight.'),
+        ('ritual', '🜂', 'Ritual', 'Make intention visible.'),
+        ('codex', '🜃', 'Codex', 'Your myth, encoded.'),
+        ('guide', '🜄', 'Guide', 'Speak to the Mirror.'),
+        ('lambdoma_keyboard', '🎹', 'Keyboard', 'Tune the harmonic space.'),
+        ('healing_selector', '✨', 'Healing', 'Entrain resonant frequencies.'),
+        ('kings_chamber_ritual', '👑', "King's Chamber", 'Attune to the core resonance.'),
+        ('about', '⊙', 'About', 'Remember the architecture.')
+    ] %}
+
+    {% for route_name, glyph, label, tooltip in nav_items %}
+        <a href="{{ url_for(route_name) }}"
+           class="flex items-center justify-center h-full px-4 
+                  text-3xl font-serif transition-all duration-300 ease-in-out transform 
+                  focus:outline-none group relative 
+                  {% if request.endpoint == route_name %}text-primary scale-110 opacity-100{% else %}text-text-muted opacity-70 hover:text-primary hover:opacity-100 hover:scale-105{% endif %}"
+           aria-label="{{ label }}"
+           title="{{ tooltip }}" {# Simple tooltip for now #}
+        >
+           {{ glyph }}
+           {# Custom Tooltip Example #}
+           {# <span 
+             class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 
+                        px-2 py-1 bg-gray-900 text-text-muted text-xs font-sans rounded-md 
+                        opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap pointer-events-none">
+             {{ tooltip }}
+           </span> #}
+        </a>
+    {% endfor %}
+</nav> 

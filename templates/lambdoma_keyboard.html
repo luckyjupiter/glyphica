@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+
+{% block title %}Lambdoma Keyboard{% endblock %}
+
+{% block head %}
+<style>
+    .lambdoma-grid {
+        display: grid;
+        grid-template-columns: repeat(var(--grid-size, 16), minmax(0, 1fr));
+        grid-template-rows: repeat(var(--grid-size, 16), minmax(0, 1fr));
+        border: 1px solid #4b5563; /* gray-600 */
+        aspect-ratio: 1 / 1;
+        max-width: 70vh; /* Limit size */
+        max-height: 70vh;
+        margin: auto;
+    }
+    .lambdoma-cell {
+        border: 1px solid #374151; /* gray-700 */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 0.6rem; /* Adjust as needed */
+        line-height: 1;
+        text-align: center;
+        color: rgba(255, 255, 255, 0.7);
+        transition: all 0.1s ease-in-out;
+        position: relative;
+        overflow: hidden;
+    }
+    .lambdoma-cell:hover {
+        border-color: #d1d5db; /* gray-300 */
+        color: white;
+        z-index: 10;
+        transform: scale(1.1);
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    }
+    .lambdoma-cell.active {
+         border: 2px solid white;
+         transform: scale(1.1);
+         z-index: 20;
+    }
+    #lissajous-canvas {
+        border: 1px solid #4b5563; /* gray-600 */
+        background-color: #1f2937e0; /* gray-800 with transparency */
+        aspect-ratio: 1 / 1;
+        width: 100%;
+        max-width: 300px; /* Adjust size */
+    }
+    /* Ensure consistent sizing between grid and canvas containers */
+    .keyboard-container {
+        max-width: 70vh;
+        margin: auto;
+    }
+    .visual-container {
+         max-width: 300px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-4 md:p-8 flex flex-col items-center">
+    <h1 class="text-3xl font-serif text-primary mb-6">Lambdoma Keyboard</h1>
+
+    <div class="flex flex-col md:flex-row gap-8 items-center justify-center w-full">
+        <!-- Lambdoma Grid -->
+        <div class="keyboard-container w-full md:w-2/3">
+            <div id="lambdoma-grid" class="lambdoma-grid" style="--grid-size: {{ grid_size }};">
+                {% for r in range(grid_size) %}
+                    {% for c in range(grid_size) %}
+                        {% set cell = matrix[r][c] %}
+                        <div class="lambdoma-cell"
+                             style="background-color: {{ cell.color }}30;" {# Add alpha transparency #}
+                             title="{{ cell.ratioStr }} | {{ cell.noteName or 'N/A' }} | {{ cell.chakra }} | {{ cell.frequencyHz }} Hz"
+                             data-row="{{ r + 1 }}" {# Use 1-based for Lissajous #}
+                             data-col="{{ c + 1 }}" {# Use 1-based for Lissajous #}
+                             data-freq="{{ cell.frequencyHz }}"
+                             data-ratio="{{ cell.ratioStr }}"
+                             data-color="{{ cell.color }}">
+                            {{ cell.ratioStr }}
+                        </div>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Visual Display -->
+        <div class="visual-container w-full md:w-1/3 flex flex-col items-center">
+             <h2 class="text-lg font-serif text-secondary mb-4">Harmonic Visual</h2>
+             <canvas id="lissajous-canvas" width="300" height="300"></canvas>
+             <p id="visual-info" class="text-xs text-text-muted mt-2 text-center">Click a cell to visualize resonance</p>
+        </div>
+    </div>
+    
+    <div class="mt-4 text-xs text-text-muted">
+        Base Frequency: 256 Hz | Grid Size: {{ grid_size }}x{{ grid_size }}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const grid = document.getElementById('lambdoma-grid');
+        const canvas = document.getElementById('lissajous-canvas');
+        const visualInfo = document.getElementById('visual-info');
+        const ctx = canvas.getContext('2d');
+        
+        let audioContext;
+        let activeCell = null;
+        let gainNode;
+        let pannerNode;
+        let oscillator;
+
+        // --- Task 3: Web Audio Tone Synthesis --- 
+        function initAudio() {
+            if (!audioContext) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    console.log('Audio context initialized.');
+                } catch (e) {
+                    console.error("Web Audio API is not supported in this browser", e);
+                    alert("Web Audio API is not supported in this browser");
+                    return false;
+                }
+            }
+             // Resume context if suspended (often needed after user interaction)
+            if (audioContext.state === 'suspended') {
+                audioContext.resume().catch(e => console.error("Error resuming audio context:", e));
+            }
+            return true;
+        }
+
+        function playTone(freq, pan = 0, duration = 1.5) {
+            if (!initAudio() || freq <= 0) return;
+
+            // Stop previous tone if any
+             if (oscillator) {
+                 try {
+                     gainNode.gain.cancelScheduledValues(audioContext.currentTime);
+                     gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.1); // Quick fade out
+                     if (pannerNode) pannerNode.disconnect();
+                     gainNode.disconnect();
+                     oscillator.stop(audioContext.currentTime + 0.1);
+                 } catch(e) { console.warn("Error stopping previous tone:", e); }
+             }
+
+            oscillator = audioContext.createOscillator();
+            gainNode = audioContext.createGain();
+            pannerNode = audioContext.createStereoPanner();
+
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
+
+            // Envelope: Quick attack, hold, gentle release
+            const now = audioContext.currentTime;
+            gainNode.gain.setValueAtTime(0.0001, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.5, now + 0.05); // Exponential attack
+            gainNode.gain.setValueAtTime(0.5, now + duration - 0.5);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration); // Exponential release
+
+            // Set panning (-1 left, 0 center, 1 right)
+            pannerNode.pan.setValueAtTime(pan, now);
+
+            // Connect nodes: Osc -> Gain -> Panner -> Destination
+            oscillator.connect(gainNode);
+            gainNode.connect(pannerNode);
+            pannerNode.connect(audioContext.destination);
+
+            oscillator.start(now);
+            oscillator.stop(now + duration);
+        }
+
+        // --- Task 4: Visual Resonance Display --- 
+        function renderLissajous(xRatio, yRatio, canvasCtx, color) {
+            const width = canvasCtx.canvas.width;
+            const height = canvasCtx.canvas.height;
+            const padding = 20;
+            const amplitudeX = (width / 2) - padding;
+            const amplitudeY = (height / 2) - padding;
+            const delta = Math.PI / 2; // Phase difference
+            const points = 500; // Number of points to draw
+            const increment = (Math.PI * 2 * Math.max(xRatio, yRatio)) / points; // Adjust speed based on ratio
+
+            canvasCtx.clearRect(0, 0, width, height);
+            canvasCtx.beginPath();
+            canvasCtx.strokeStyle = color;
+            canvasCtx.lineWidth = 1.5;
+            canvasCtx.globalAlpha = 0.8;
+
+            let firstX = 0, firstY = 0;
+            for (let i = 0; i <= points; i++) {
+                const t = i * increment;
+                const x = amplitudeX * Math.sin(xRatio * t + delta);
+                const y = amplitudeY * Math.sin(yRatio * t);
+                const screenX = (width / 2) + x;
+                const screenY = (height / 2) + y;
+
+                if (i === 0) {
+                    canvasCtx.moveTo(screenX, screenY);
+                    firstX = screenX; firstY = screenY;
+                } else {
+                    canvasCtx.lineTo(screenX, screenY);
+                }
+            }
+            // Optional: close the path if it looks better for low ratios
+            // canvasCtx.lineTo(firstX, firstY); 
+            canvasCtx.stroke();
+            canvasCtx.globalAlpha = 1.0;
+        }
+
+        // --- Task 2: Grid Interaction --- 
+        grid.addEventListener('click', (event) => {
+            const cell = event.target.closest('.lambdoma-cell');
+            if (!cell) return;
+
+            const freq = parseFloat(cell.dataset.freq);
+            const ratioStr = cell.dataset.ratio;
+            const color = cell.dataset.color;
+            const row = parseInt(cell.dataset.row); // 1-based
+            const col = parseInt(cell.dataset.col); // 1-based
+            const gridSize = grid.children.length > 64 ? 16 : 8; // Determine grid size
+
+             if (activeCell) {
+                 activeCell.classList.remove('active');
+             }
+             cell.classList.add('active');
+             activeCell = cell;
+
+            // Determine pan based on column position
+            // Map column (1 to gridSize) to pan (-1 to 1)
+            // Example: col 1 -> -1, col gridSize/2 -> 0, col gridSize -> 1
+            const panValue = (col - 1) / (gridSize - 1) * 2 - 1;
+
+            if (!isNaN(freq) && freq > 0) {
+                playTone(freq, panValue);
+                renderLissajous(row, col, ctx, color);
+                visualInfo.textContent = `Ratio: ${ratioStr} | Freq: ${freq.toFixed(2)} Hz | Pan: ${panValue.toFixed(2)}`;
+            } else {
+                 ctx.clearRect(0, 0, canvas.width, canvas.height);
+                 visualInfo.textContent = `Ratio: ${ratioStr} | Invalid Frequency | Pan: ${panValue.toFixed(2)}`;
+            }
+        });
+        
+        // Initialize audio on first interaction (good practice)
+        document.body.addEventListener('click', initAudio, { once: true });
+    });
+</script>
+{% endblock %} 

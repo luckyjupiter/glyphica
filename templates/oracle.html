@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block title %}Oracle Invocation{% endblock %}
+
+{% block content %}
+<div class="p-4 md:p-8 flex flex-col items-center">
+    <h1 class="text-3xl font-serif text-primary mb-6">Invoke the Oracle</h1>
+
+    <form method="POST" action="{{ url_for('oracle') }}" class="w-full max-w-lg mb-8 p-6 border rounded border-border-subtle bg-zinc-800/50 shadow-lg">
+        <div class="mb-4">
+            <label for="intention" class="block text-sm font-medium text-text-muted mb-1">State Your Intention:</label>
+            <input type="text" id="intention" name="intention" required
+                   class="w-full p-2 border rounded bg-input text-text-base focus:ring-accent focus:border-accent" 
+                   placeholder="e.g., Seek guidance on connection...">
+        </div>
+        <button type="submit" class="w-full px-4 py-2 bg-accent text-white rounded hover:bg-accent-hover">Invoke</button>
+    </form>
+
+    {% if oracle_reading %}
+        <div class="w-full max-w-2xl p-6 border rounded border-accent-dream bg-zinc-800 shadow-xl">
+            <h2 class="text-xl font-serif text-accent-dream mb-4 text-center">The Oracle Responds...</h2>
+            
+            <div class="flex flex-col md:flex-row gap-6 items-center md:items-start">
+                <!-- Glyph Display -->
+                <div class="w-48 h-48 flex-shrink-0 border flex items-center justify-center rounded-lg shadow-md 
+                    {% if oracle_reading.glyph.dream %}border-accent-dream/60 dream-glyph{% else %}border-border-subtle bg-zinc-700/50{% endif %}">
+                    {{ oracle_reading.glyph.imageUrl | safe }}
+                </div>
+                
+                <!-- Interpretation & Data -->
+                <div class="text-sm flex-grow">
+                    <p class="mb-3 text-text-base">
+                       <strong class="text-text-muted">Interpretation:</strong> 
+                       {{ oracle_reading.interpretation or 'No specific interpretation available.' }}
+                    </p>
+                    <p class="mb-4 text-text-base">
+                       <strong class="text-text-muted">Suggestion:</strong> 
+                       {{ oracle_reading.ritualSuggestion or 'Consider what arises.' }}
+                    </p>
+                    
+                    <div class="text-xs text-text-muted border-t border-border-subtle pt-2">
+                       <p>Chakra: <span class="font-mono">{{ oracle_reading.harmonicSignature.chakra or 'N/A' }}</span></p>
+                       <p>Ratio: <span class="font-mono">{{ oracle_reading.harmonicSignature.ratio or 'N/A' }}</span></p>
+                       <p>Note: <span class="font-mono">{{ oracle_reading.harmonicSignature.note or 'N/A' }}</span></p>
+                       <p>Timestamp: <span class="font-mono">{{ oracle_reading.timestamp.strftime('%Y-%m-%d %H:%M:%S') if oracle_reading.timestamp else 'N/A' }} UTC</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="mt-6 flex flex-wrap justify-center gap-4 text-sm border-t border-border-subtle pt-4">
+                <button class="px-3 py-1 border border-accent rounded text-accent hover:bg-accent hover:text-white transition-colors duration-150" disabled>Add to Journal (TODO)</button>
+                <a href="{{ url_for('hero_ritual', glyph_id=oracle_reading.glyph.id) }}" 
+                   class="px-3 py-1 border border-secondary rounded text-secondary hover:bg-secondary hover:text-white transition-colors duration-150">
+                   Begin Hero Ritual
+                </a>
+                <button class="px-3 py-1 border border-text-muted rounded text-text-muted hover:bg-text-muted hover:text-black transition-colors duration-150" disabled>Watch for Sync (TODO)</button>
+            </div>
+            
+            <!-- Placeholder for Audio/Visuals -->
+            <div id="oracle-audiovisual-container" class="mt-4" data-note="{{ oracle_reading.harmonicSignature.note }}" data-chakra="{{ oracle_reading.harmonicSignature.chakra }}">
+                 <!-- JS will target this -->
+            </div>
+        </div>
+    {% endif %}
+
+</div>
+
+{% block scripts %}
+<script>
+    // Placeholder for Web Audio API tone playback and animation
+    // This logic will be more fully developed in the Hero Ritual player (Task 3)
+    document.addEventListener('DOMContentLoaded', () => {
+        const avContainer = document.getElementById('oracle-audiovisual-container');
+        if (avContainer) {
+            const note = avContainer.dataset.note;
+            const chakra = avContainer.dataset.chakra;
+            console.log(`Oracle responded: Note=${note}, Chakra=${chakra}. TODO: Add audio/visuals here.`);
+            // Basic placeholder indication:
+            avContainer.innerHTML = `<p class="text-xs text-center text-text-muted italic mt-2">[Audio/Visual Entrainment Placeholder for Note: ${note}]</p>`;
+        }
+    });
+</script>
+{% endblock %} 

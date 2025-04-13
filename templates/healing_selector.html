@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block title %}Hero Healing Device{% endblock %}
+
+{% block content %}
+<div class="p-4 md:p-8 flex flex-col items-center">
+    <h1 class="text-3xl font-serif text-primary mb-4">Hero Healing Device</h1>
+    <p class="text-lg text-text-muted mb-8 text-center max-w-2xl">Select an area of focus to begin a harmonic entrainment session based on the protocols of Barbara Hero.</p>
+
+    <div class="w-full max-w-3xl space-y-4">
+        {% if ailments %}
+            {% for ailment in ailments %}
+                <div class="p-4 border rounded-lg border-border-subtle bg-zinc-800/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div class="flex-grow">
+                        <h2 class="text-xl font-semibold text-secondary mb-1">{{ ailment.name }}</h2>
+                        <p class="text-sm text-text-muted">{{ ailment.description }}</p>
+                    </div>
+                    <a href="{{ url_for('entrainment_session', ailment=ailment.name) }}" 
+                       class="px-4 py-2 bg-accent text-white rounded hover:bg-accent-hover whitespace-nowrap flex-shrink-0">
+                       Begin Session
+                    </a>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-center text-text-muted">No healing protocols defined.</p>
+        {% endif %}
+    </div>
+
+    <p class="mt-8 text-xs text-text-muted italic text-center max-w-xl">
+        Disclaimer: The Hero Healing Device is intended for energetic balancing and informational purposes only. It is not a substitute for professional medical advice, diagnosis, or treatment.
+    </p>
+
+</div>
+{% endblock %} 

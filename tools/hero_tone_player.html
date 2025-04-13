@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Hero Tone Player</title>
+  <style>
+    body { font-family: sans-serif; background: #111; color: #fff; text-align: center; padding: 2em; }
+    button { margin: 1em; padding: 1em 2em; font-size: 1.2em; border: none; border-radius: 10px; background: #444; color: #fff; cursor: pointer; }
+    button:hover { background: #666; }
+  </style>
+</head>
+<body>
+  <h1>🎵 Hero Healing Tones</h1>
+  <p>Click to play harmonic tones used by Barbara Hero</p>
+
+  <button onclick="playTone(256)">C - 256 Hz (Root)</button>
+  <button onclick="playTone(384)">G - 384 Hz (Trauma)</button>
+  <button onclick="playBoth(256, 384)">C + G (3:2 Perfect Fifth)</button>
+  <button onclick="playTone(320)">E♭ - 320 Hz (Emotion Release)</button>
+  <button onclick="playBoth(288, 384)">D + G (4:3 Ratio)</button>
+
+  <script>
+    let audioCtx = null; // Initialize later on user interaction
+
+    function initAudioContext() {
+        if (!audioCtx) {
+            try {
+                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                 console.log('Audio context initialized.');
+            } catch(e) {
+                 console.error('Web Audio API not supported:', e);
+                 alert('Web Audio API is not supported in this browser.');
+                 return false;
+            }
+        }
+        // Resume if suspended (e.g., after page load)
+        if (audioCtx.state === 'suspended') {
+             audioCtx.resume();
+        }
+        return true;
+    }
+
+    function playTone(freq, duration = 4) {
+      if (!initAudioContext()) return; 
+      
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime); // Use setValueAtTime for frequency
+      
+      // Gain envelope
+      gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.5, audioCtx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.5, audioCtx.currentTime + duration - 0.5); // Hold volume before fade
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+      
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function playBoth(freq1, freq2, duration = 4) {
+      // Ensure context is initialized before playing tones
+      if (!initAudioContext()) return;
+      playTone(freq1, duration);
+      playTone(freq2, duration);
+    }
+    
+    // Add event listener to initialize audio context on first user interaction
+    document.body.addEventListener('click', initAudioContext, { once: true });
+    document.body.addEventListener('touchstart', initAudioContext, { once: true });
+
+  </script>
+</body>
+</html> 

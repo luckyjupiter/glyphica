@@ -1,0 +1,66 @@
+<!-- templates/guide.html -->
+{% extends 'base.html' %}
+
+{% block title %}Consult Symbion - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-3xl">
+    <h1 class="text-4xl font-serif font-bold mb-8 text-primary text-center">Consult Symbion</h1>
+    
+    {# Use darker background, subtle border, and shadow consistent with theme #}
+    <div class="bg-gray-900/60 border border-border-subtle shadow-xl rounded-lg p-6 backdrop-blur-sm">
+        <!-- Chat History Display -->
+        {# Increase height, use dark background #}
+        <div id="chat-history" class="mb-6 h-[60vh] overflow-y-auto border border-border-subtle rounded p-4 space-y-4 bg-background-dark/80">
+            {% if chat_history %}
+                {% for message in chat_history %}
+                    <div class="{% if message.role == 'user' %}flex justify-end{% else %}flex justify-start{% endif %}">
+                        {# Use theme colors for bubbles, max-width for readability #}
+                        <div class="max-w-[85%] inline-block p-3 rounded-lg shadow-sm 
+                                    {% if message.role == 'user' %}
+                                        bg-indigo-800/50 text-primary
+                                    {% else %}{# Assistant / Symbion #}
+                                        bg-gray-700/60 text-text-base
+                                    {% endif %}">
+                             {# Display 'Symbion' for assistant #}
+                            <strong class="font-semibold capitalize block mb-1">
+                                {{ 'You' if message.role == 'user' else 'Symbion' }}:
+                            </strong>
+                            {# Use pre-wrap to respect newlines from LLM #}
+                            <p class="whitespace-pre-wrap text-sm leading-relaxed">{{ message.content }}</p> 
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-text-muted italic text-center py-4">Symbion awaits your query.</p>
+            {% endif %}
+        </div>
+
+        <!-- Message Input Form -->
+        <form method="POST" action="{{ url_for('guide') }}">
+            <div class="flex items-stretch">
+                {# Style textarea for dark theme #}
+                <textarea name="message" rows="3" 
+                          class="flex-grow border border-border-subtle rounded-l-md p-3 focus:outline-none focus:ring-2 focus:ring-accent-dream focus:border-accent-dream resize-none bg-background-dark text-primary placeholder-text-muted text-sm" 
+                          placeholder="Speak to Symbion..." required></textarea>
+                {# Ensure button aligns with textarea height and uses theme colors #}
+                <button type="submit" 
+                        class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-5 rounded-r-md flex items-center justify-center transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background-dark focus:ring-accent-dream"
+                        aria-label="Send message">
+                    Send
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+{# JavaScript to scroll to the bottom of the chat history #}
+<script>
+    const chatHistory = document.getElementById('chat-history');
+    if (chatHistory) {
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+</script>
+
+{% endblock %} 

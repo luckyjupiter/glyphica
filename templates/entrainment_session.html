@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+
+{% block title %}Healing Session: {{ params.ailment }}{% endblock %}
+
+{% block head %}
+<style>
+    /* Re-use pulsing animation from hero_ritual.html */
+    @keyframes pulse-glow {
+        0%, 100% { opacity: 0.7; box-shadow: 0 0 0px var(--glow-color); }
+        50% { opacity: 1; box-shadow: 0 0 20px var(--glow-color), 0 0 30px var(--glow-color); }
+    }
+    .animate-pulse-glow {
+        animation: pulse-glow 3s ease-in-out infinite;
+        border: 2px solid var(--glow-color);
+        background-color: var(--glow-color-bg, rgba(0,0,0,0.2));
+    }
+    #affirmation-text {
+        font-size: 1.5rem; 
+        font-style: italic;
+        font-family: serif;
+        color: var(--glow-color, #fff);
+        text-shadow: 0 0 5px var(--glow-color, #fff), 0 0 10px rgba(0,0,0,0.5);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-4 md:p-8 flex flex-col items-center"
+     data-frequency="{{ params.frequency }}"
+     data-ratio="{{ params.ratio or '1:1' }}" {# Default ratio if none specific #}
+     data-chakra="{{ params.chakra }}"
+     data-color="{{ params.color }}"
+     id="session-container">
+
+    <h1 class="text-2xl font-serif text-primary mb-2">Healing Entrainment Session</h1>
+    <h2 class="text-xl text-secondary mb-4">Focus: {{ params.ailment }}</h2>
+    <p class="text-sm text-text-muted mb-6 text-center max-w-xl">{{ params.description }}</p>
+
+    <div class="flex flex-col md:flex-row gap-8 items-center md:items-start w-full max-w-4xl">
+        <!-- Visual & Audio Control -->
+        <div class="text-center w-full md:w-1/2 flex flex-col items-center">
+            <div id="visual-display-container" 
+                 class="w-64 h-64 md:w-80 md:h-80 border flex items-center justify-center rounded-lg shadow-xl relative bg-zinc-800/50 overflow-hidden mb-4 animate-pulse-glow"
+                 style="--glow-color: {{ params.color }}; --glow-color-bg: {{ params.color }}20;">
+                 {# Canvas will be placed inside by JS? Or just use background? Using background glow for now #}
+                 <canvas id="lissajous-canvas" width="300" height="300" class="absolute inset-0 opacity-50"></canvas>
+                 <p id="affirmation-text" class="absolute inset-0 flex items-center justify-center p-4 text-center z-10 pointer-events-none">
+                     "{{ params.affirmation }}"
+                 </p>
+            </div>
+            
+            <div class="flex items-center space-x-4 mb-4">
+                <button id="play-tone-button" class="px-4 py-2 bg-accent text-white rounded hover:bg-accent-hover disabled:opacity-50">Play Tone (60s)</button>
+                <button id="stop-tone-button" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 disabled:opacity-50" disabled>Stop</button>
+                <span id="tone-status" class="text-xs text-text-muted"></span>
+            </div>
+             <div class="text-xs text-text-muted">
+                <p>Frequency: <span class="font-mono">{{ params.frequency }} Hz</span></p>
+                <p>Note: <span class="font-mono">{{ params.note or 'N/A' }}</span></p>
+                <p>Chakra: <span class="font-mono">{{ params.chakra }}</span></p>
+                <p>Ratio: <span class="font-mono">{{ params.ratio or 'N/A' }}</span></p>
+             </div>
+        </div>
+
+        <!-- Reflection Form -->
+        <div class="w-full md:w-1/2">
+            <h2 class="text-lg font-serif text-secondary mb-4 text-center md:text-left">Log Reflection</h2>
+            <form method="POST" action="{{ url_for('entrainment_session') }}" class="p-6 border rounded border-border-subtle bg-zinc-800/50 shadow-lg space-y-4">
+                 {# Hidden fields to pass session data to POST handler #}
+                 <input type="hidden" name="ailment_name" value="{{ params.ailment }}">
+                 <input type="hidden" name="session_params" value='{{ params | tojson | safe }}'>
+                 
+                 <div>
+                    <label for="ritual_notes" class="block text-sm font-medium text-text-muted mb-1">Notes / Reflections:</label>
+                    <textarea id="ritual_notes" name="ritual_notes" rows="5" 
+                              class="w-full p-2 border rounded bg-input text-text-base focus:ring-accent focus:border-accent"
+                              placeholder="Describe your experience, visions, or insights during the session..."></textarea>
+                </div>
+                 <div>
+                    <label for="ritual_mode" class="block text-sm font-medium text-text-muted mb-1">Engagement Mode:</label>
+                    <select id="ritual_mode" name="ritual_mode" class="w-full p-2 border rounded bg-input text-text-base focus:ring-accent focus:border-accent">
+                        <option value="listening">Passive Listening</option>
+                        <option value="focus">Focused Meditation</option>
+                        <option value="visualization">Visualization</option>
+                        <option value="draw">Drawing / Sketching</option>
+                        <option value="movement">Movement / Embodiment</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                 <div>
+                    <label for="emotional_tag" class="block text-sm font-medium text-text-muted mb-1">Emotional Tag (Optional):</label>
+                    <input type="text" id="emotional_tag" name="emotional_tag" 
+                           class="w-full p-2 border rounded bg-input text-text-base focus:ring-accent focus:border-accent" 
+                           placeholder="e.g., Release, Calm, Energized...">
+                </div>
+                <button type="submit" class="w-full px-4 py-2 bg-secondary text-white rounded hover:bg-accent-hover">Log Reflection & Finish</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Adapted from hero_ritual.html and lambdoma_keyboard.html
+    document.addEventListener('DOMContentLoaded', () => {
+        const sessionContainer = document.getElementById('session-container');
+        const frequency = parseFloat(sessionContainer.dataset.frequency);
+        const ratioStr = sessionContainer.dataset.ratio || "1:1"; // Default if ratio is null
+        const color = sessionContainer.dataset.color;
+        const canvas = document.getElementById('lissajous-canvas');
+        const ctx = canvas.getContext('2d');
+        const playButton = document.getElementById('play-tone-button');
+        const stopButton = document.getElementById('stop-tone-button');
+        const statusDisplay = document.getElementById('tone-status');
+
+        let audioContext;
+        let oscillator;
+        let gainNode;
+        let isPlaying = false;
+        const defaultDuration = 60; // Default session duration in seconds
+        let stopTimeout = null; // To clear timeout if stopped manually
+
+        // --- Web Audio Logic (playTone) --- 
+        function initAudio() {
+             if (!audioContext) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    console.log('Audio context initialized.');
+                } catch (e) {
+                    console.error("Web Audio API is not supported", e);
+                    statusDisplay.textContent = 'Audio not supported.';
+                    playButton.disabled = true;
+                    stopButton.disabled = true;
+                    return false;
+                }
+            }
+            if (audioContext.state === 'suspended') { audioCtx.resume(); }
+            return true;
+        }
+
+        function playTone(freq, duration = defaultDuration) {
+            if (isPlaying || !initAudio() || !freq || freq <= 0) return;
+
+            oscillator = audioContext.createOscillator();
+            gainNode = audioContext.createGain();
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
+            
+            // Envelope
+            const now = audioContext.currentTime;
+            gainNode.gain.setValueAtTime(0.0001, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.5, now + 0.5); // Slower fade in
+            gainNode.gain.setValueAtTime(0.5, now + duration - 1.0); // Hold until last second
+            gainNode.gain.linearRampToValueAtTime(0, now + duration); // Linear fade out
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.start(now);
+            // Store timeout ID to allow manual stopping
+            stopTimeout = setTimeout(() => stopPlayback(false), duration * 1000); 
+            
+            isPlaying = true;
+            playButton.disabled = true;
+            stopButton.disabled = false;
+            statusDisplay.textContent = 'Playing...';
+        }
+
+        function stopPlayback(manual = true) {
+             if (!isPlaying || !oscillator) return;
+             if (stopTimeout) { clearTimeout(stopTimeout); stopTimeout = null; }
+
+             const now = audioContext.currentTime;
+             gainNode.gain.cancelScheduledValues(now);
+             // Quick fade out if stopped manually, otherwise let scheduled fade complete
+             gainNode.gain.linearRampToValueAtTime(0, now + (manual ? 0.2 : 0)); 
+
+             try {
+                 oscillator.stop(now + (manual ? 0.2 : 0));
+             } catch (e) { /* Ignore error if already stopped */ }
+             
+             isPlaying = false;
+             playButton.disabled = false;
+             stopButton.disabled = true;
+             statusDisplay.textContent = manual ? 'Stopped.' : 'Finished.';
+             if (audioContext.state === 'suspended') { audioContext.resume(); }
+        }
+
+        // --- Visual Logic (renderLissajous) ---
+        function renderLissajous(ratioString, canvasCtx, color) {
+            let xRatio = 1, yRatio = 1; // Default
+            try {
+                 [xRatio, yRatio] = ratioString.split(':').map(Number);
+            } catch (e) { console.warn("Invalid ratio for Lissajous:", ratioString); }
+            
+            if (isNaN(xRatio) || isNaN(yRatio) || xRatio <= 0 || yRatio <= 0) {
+                xRatio = 1; yRatio = 1;
+            }
+            
+            const width = canvasCtx.canvas.width;
+            const height = canvasCtx.canvas.height;
+            const padding = 20;
+            const amplitudeX = (width / 2) - padding;
+            const amplitudeY = (height / 2) - padding;
+            const delta = Math.PI / 2;
+            const points = 500;
+            const increment = (Math.PI * 2 * Math.max(xRatio, yRatio)) / points;
+
+            canvasCtx.clearRect(0, 0, width, height);
+            canvasCtx.beginPath();
+            canvasCtx.strokeStyle = color;
+            canvasCtx.lineWidth = 1.5;
+            canvasCtx.globalAlpha = 0.8;
+
+            for (let i = 0; i <= points; i++) {
+                const t = i * increment;
+                const x = amplitudeX * Math.sin(xRatio * t + delta);
+                const y = amplitudeY * Math.sin(yRatio * t);
+                const screenX = (width / 2) + x;
+                const screenY = (height / 2) + y;
+                if (i === 0) { canvasCtx.moveTo(screenX, screenY); } 
+                else { canvasCtx.lineTo(screenX, screenY); }
+            }
+            canvasCtx.stroke();
+            canvasCtx.globalAlpha = 1.0;
+        }
+
+        // --- Event Listeners --- 
+        playButton.addEventListener('click', () => {
+            playTone(frequency);
+            // Initial render + maybe start animation?
+             renderLissajous(ratioStr, ctx, color);
+        });
+
+        stopButton.addEventListener('click', () => stopPlayback(true));
+        
+        // Initial render on page load
+        renderLissajous(ratioStr, ctx, color);
+        // Initialize audio context on first interaction
+        document.body.addEventListener('click', initAudio, { once: true });
+        document.body.addEventListener('touchstart', initAudio, { once: true });
+
+    });
+</script>
+{% endblock %} 

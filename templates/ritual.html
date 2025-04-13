@@ -1,0 +1,25 @@
+<!-- templates/ritual.html -->
+{% extends 'base.html' %}
+
+{% block title %}Perform Ritual - Glyphica{% endblock %}
+
+{% block content %}
+    <div class="min-h-screen flex items-center justify-center p-8">
+        <div class="w-full max-w-lg bg-zinc-800/50 backdrop-blur-sm rounded-xl shadow-2xl p-6 md:p-10 border border-border-subtle">
+            <!-- TODO: Add form for intention input and POST handling -->
+            <h1 class="text-3xl font-serif text-center text-accent-dream mb-6">Begin Ritual</h1>
+            <p class="text-center text-text-muted">(Ritual input form and glyph display will go here)</p>
+             <form method="POST" action="{{ url_for('ritual') }}" class="space-y-6 mt-6">
+                 <div>
+                   <label for="intention" class="block text-sm font-medium text-text-muted mb-2">Set Your Intention</label>
+                   <input type="text" id="intention" name="intention" 
+                          class="w-full px-4 py-3 text-lg bg-zinc-900/70 border border-border-subtle rounded-lg focus:ring-1 focus:ring-accent-ritual focus:border-accent-ritual outline-none transition duration-200 text-primary placeholder-text-muted"
+                          placeholder="e.g., Embrace the unknown..." required autofocus>
+                 </div>
+                 <button type="submit" class="w-full btn btn-primary">
+                     Perform Ritual
+                 </button>
+             </form>
+        </div>
+    </div>
+{% endblock %} 

@@ -1,0 +1,346 @@
+{% extends 'base.html' %}
+
+{% block title %}King's Chamber Resonance{% endblock %}
+
+{% block head %}
+<style>
+    body {
+        /* Placeholder: Add dark stone texture background */
+        background-color: #1a1a1a; /* Darker gray */
+    }
+    .ritual-container {
+        color: #a0a0a0; /* Lighter gray text for contrast */
+    }
+    #visual-display-kcr {
+        border: 1px solid #4b5563; /* gray-600 */
+        background-color: #0f0f0f; /* Very dark */
+        aspect-ratio: 1 / 1;
+        width: 100%;
+        max-width: 400px; /* Adjust size */
+        margin-bottom: 1rem;
+    }
+    #lissajous-canvas-kcr {
+        display: block; /* Ensure canvas takes up space */
+        width: 100%;
+        height: 100%;
+    }
+    .instructions {
+        background-color: rgba(0, 0, 0, 0.3);
+        padding: 1em;
+        border-radius: 8px;
+        border: 1px solid #374151;
+        font-style: italic;
+        margin-bottom: 2rem;
+        max-width: 600px;
+    }
+    .tone-button {
+        background-color: #6b7280; /* Gray */
+    }
+    .tone-button.primary {
+         background-color: #dc2626; /* Red */
+    }
+    .stop-button {
+         background-color: #4b5563;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-4 md:p-8 flex flex-col items-center ritual-container" id="kcr-container">
+
+    <h1 class="text-3xl font-serif text-red-500 mb-4">King's Chamber Resonance</h1>
+    <p class="text-lg text-text-muted mb-6 text-center max-w-2xl">Enter the resonant frequency field of the Great Pyramid.</p>
+
+    <!-- Instructions -->
+    <div class="instructions text-sm">
+        <p><strong>Instructions:</strong></p>
+        <ol class="list-decimal list-inside ml-4 mt-2 space-y-1">
+            <li>Find a quiet space. Sit comfortably, eyes half-closed or fully closed.</li>
+            <li>Select a tone below (start with 64 Hz). Click "Play Tone".</li>
+            <li>Listen to the sustained tone. Allow your body and mind to adjust to the frequency.</li>
+            <li>Observe any sensations, images, memories, or emotions that arise naturally. Do not force.</li>
+            <li>When ready, stop the tone and record your observations in the log below.</li>
+        </ol>
+    </div>
+
+    <div class="flex flex-col md:flex-row gap-8 items-center md:items-start w-full max-w-4xl">
+        <!-- Visual & Audio Control -->
+        <div class="text-center w-full md:w-1/2 flex flex-col items-center">
+            <div id="visual-display-kcr">
+                 <canvas id="lissajous-canvas-kcr" width="400" height="400"></canvas>
+            </div>
+            
+            <div class="flex items-center flex-wrap justify-center gap-4 mb-4">
+                 <button data-freq="64" data-duration="180" class="tone-button primary px-4 py-2 text-white rounded hover:opacity-80">Play 64 Hz (3 min)</button>
+                 <button data-freq="128" data-duration="120" class="tone-button px-3 py-1 text-white rounded hover:opacity-80 text-sm">Play 128 Hz (2 min)</button>
+                 <button data-freq="192" data-duration="120" class="tone-button px-3 py-1 text-white rounded hover:opacity-80 text-sm">Play 192 Hz (2 min)</button>
+                 <button data-freq="384" data-duration="120" class="tone-button px-3 py-1 text-white rounded hover:opacity-80 text-sm">Play 384 Hz (2 min)</button>
+                 <button id="stop-tone-button-kcr" class="stop-button px-4 py-2 text-white rounded hover:opacity-80 disabled:opacity-50" disabled>Stop Tone</button>
+            </div>
+            <span id="tone-status-kcr" class="text-xs text-text-muted h-4"></span> {# Height to prevent layout shift #}
+        </div>
+
+        <!-- Reflection Form -->
+        <div class="w-full md:w-1/2">
+            <h2 class="text-lg font-serif text-red-400 mb-4 text-center md:text-left">Log Observations</h2>
+            <form method="POST" action="{{ url_for('kings_chamber_ritual') }}" class="p-6 border rounded border-red-800/50 bg-black/30 shadow-lg space-y-4">
+                 {# Hidden fields to pass session data #}
+                 <input type="hidden" id="frequency_played" name="frequency_played" value="">
+                 <input type="hidden" id="duration_played" name="duration_played" value="">
+                 
+                 <div>
+                    <label for="ritual_notes" class="block text-sm font-medium text-text-muted mb-1">Notes / Observations:</label>
+                    <textarea id="ritual_notes" name="ritual_notes" rows="6" 
+                              class="w-full p-2 border rounded bg-input border-red-900/50 text-text-base focus:ring-red-500 focus:border-red-500"
+                              placeholder="Record any spontaneous vision, memory, emotion, or physical sensation..."></textarea>
+                </div>
+                <div class="flex items-center">
+                    <input id="dream_vision_sync" name="dream_vision_sync" type="checkbox" value="true" 
+                           class="h-4 w-4 text-red-600 border-gray-600 rounded focus:ring-red-500">
+                    <label for="dream_vision_sync" class="ml-2 block text-sm text-text-muted">Dream, Vision, or Sync triggered during/after?</label>
+                </div>
+                <button type="submit" class="w-full px-4 py-2 bg-red-700 text-white rounded hover:bg-red-800">Log Reflection & Conclude</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Adapted from entrainment_session.html and lambdoma_keyboard.html
+    document.addEventListener('DOMContentLoaded', () => {
+        const canvas = document.getElementById('lissajous-canvas-kcr');
+        const ctx = canvas.getContext('2d');
+        const toneButtons = document.querySelectorAll('.tone-button');
+        const stopButton = document.getElementById('stop-tone-button-kcr');
+        const statusDisplay = document.getElementById('tone-status-kcr');
+        const freqPlayedInput = document.getElementById('frequency_played');
+        const durationPlayedInput = document.getElementById('duration_played');
+
+        let audioContext;
+        let oscillator;
+        let gainNode;
+        let isPlaying = false;
+        let currentFreq = 0;
+        let currentDuration = 0;
+        let stopTimeout = null;
+        const visualColor = '#dc2626'; // Red-600 for visuals
+
+        // --- Web Audio Logic (from entrainment_session.html, adapted) --- 
+        function initAudio() {
+             console.log('[KCR] initAudio called. Current context state:', audioContext ? audioContext.state : 'null');
+             if (!audioContext) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    console.log('[KCR] Audio context initialized.');
+                } catch (e) {
+                    console.error("[KCR] Web Audio API is not supported", e);
+                    statusDisplay.textContent = 'Audio not supported.';
+                    toneButtons.forEach(btn => btn.disabled = true);
+                    stopButton.disabled = true;
+                    return false;
+                }
+            }
+            // Resume context if suspended (needed for user interaction)
+            if (audioContext.state === 'suspended') { 
+                console.log('[KCR] Resuming suspended audio context...');
+                audioContext.resume().then(() => console.log('[KCR] Context resumed.')).catch(e => console.error("[KCR] Error resuming audio context:", e)); 
+            }
+            console.log('[KCR] initAudio finished. Context state:', audioContext.state);
+            return true;
+        }
+
+        function playKingTone(freq, duration) {
+            console.log(`[KCR] playKingTone called with freq: ${freq}, duration: ${duration}. isPlaying: ${isPlaying}`);
+            if (isPlaying || !initAudio() || !freq || freq <= 0) {
+                console.log('[KCR] playKingTone prevented:', {isPlaying, freq, duration});
+                return;
+            }
+            console.log('[KCR] Stopping previous playback (if any)...');
+            stopPlayback(true, false); // Stop previous tone quickly without status update
+
+            currentFreq = freq;
+            currentDuration = duration;
+            freqPlayedInput.value = freq; // Store for form submission
+            durationPlayedInput.value = duration; // Store for form submission
+            console.log('[KCR] Creating new Oscillator and Gain nodes.');
+            oscillator = audioContext.createOscillator();
+            gainNode = audioContext.createGain();
+            // No PannerNode needed - centered panning
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
+            console.log(`[KCR] Oscillator frequency set to ${freq}`);
+            
+            // Envelope - Slow fade in/out for sustained tone
+            const now = audioContext.currentTime;
+            const fadeInTime = 2.0; // seconds
+            const fadeOutTime = 3.0; // seconds
+            console.log(`[KCR] Scheduling gain envelope: now=${now}, fadeIn=${fadeInTime}, fadeOut=${fadeOutTime}, duration=${duration}`);
+            gainNode.gain.setValueAtTime(0.0001, now); // Start silent
+            gainNode.gain.exponentialRampToValueAtTime(0.4, now + fadeInTime); // Target gain 0.4 (adjust volume)
+            // Schedule the start of the fade-out
+            if (duration > (fadeInTime + fadeOutTime)) {
+                gainNode.gain.setValueAtTime(0.4, now + duration - fadeOutTime);
+            }
+            gainNode.gain.linearRampToValueAtTime(0.0001, now + duration); // Fade out to silent
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            console.log('[KCR] Nodes connected.');
+
+            oscillator.start(now);
+            console.log(`[KCR] Oscillator started at ${now}.`);
+            
+            // Schedule the state change slightly after the sound actually stops
+            console.log(`[KCR] Setting timeout for stopPlayback(false) in ${duration * 1000} ms.`);
+            stopTimeout = setTimeout(() => {
+                console.log('[KCR] Timeout fired, calling stopPlayback(false).');
+                stopPlayback(false);
+             }, duration * 1000); 
+            
+            isPlaying = true;
+            toneButtons.forEach(btn => btn.disabled = true); // Disable play buttons
+            stopButton.disabled = false; // Enable stop button
+            statusDisplay.textContent = `Playing ${freq} Hz...`;
+            console.log('[KCR] State updated: isPlaying=true, buttons updated.');
+
+            // --- Trigger Visual --- 
+            console.log('[KCR] Rendering Lissajous figure.');
+            renderKingLissajous(freq, ctx, visualColor);
+        }
+
+        function stopPlayback(manual = true, updateStatus = true) {
+             console.log(`[KCR] stopPlayback called. manual: ${manual}, updateStatus: ${updateStatus}. isPlaying: ${isPlaying}`);
+             if (!isPlaying || !oscillator) {
+                 console.log('[KCR] stopPlayback prevented: Not playing or no oscillator.');
+                 return;
+             }
+             if (stopTimeout) {
+                 console.log('[KCR] Clearing existing stopTimeout.');
+                 clearTimeout(stopTimeout);
+                 stopTimeout = null; 
+             }
+
+             const now = audioContext.currentTime;
+             console.log(`[KCR] Stopping playback at time ${now}. Cancelling scheduled gain values.`);
+             // Cancel any scheduled gain changes 
+             gainNode.gain.cancelScheduledValues(now);
+             // Only ramp down gain quickly if stopped MANUALLY
+             if (manual) {
+                 console.log('[KCR] Manual stop: Applying quick gain ramp down.');
+                 gainNode.gain.linearRampToValueAtTime(0, now + 0.5); // Manual stop fade
+             } else {
+                 console.log('[KCR] Automatic stop: Setting gain to 0 immediately.');
+                 // If called by timeout, gain should already be near 0 from playKingTone envelope
+                 // Ensure it's set to 0 immediately
+                 gainNode.gain.setValueAtTime(0, now);
+             }
+
+             try {
+                 // Stop the oscillator slightly after the fade completes (or immediately if timeout)
+                 const stopDelay = manual ? 0.55 : 0.05; // Longer delay for manual fade
+                 console.log(`[KCR] Scheduling oscillator.stop() in ${stopDelay} seconds.`);
+                 oscillator.stop(now + stopDelay);
+             } catch (e) { 
+                 console.warn('[KCR] Error stopping oscillator (might be already stopped):', e);
+                 /* Ignore error if already stopped */ 
+             }
+             
+             isPlaying = false;
+             toneButtons.forEach(btn => btn.disabled = false); // Re-enable play buttons
+             stopButton.disabled = true; // Disable stop button
+             if (updateStatus) {
+                  const statusText = manual ? 'Stopped.' : 'Finished.';
+                  statusDisplay.textContent = statusText;
+                  console.log(`[KCR] Status display updated: ${statusText}`);
+             }
+             console.log('[KCR] State updated: isPlaying=false, buttons updated.');
+             // Ensure context is running for next play
+             if (audioContext && audioContext.state === 'suspended') { 
+                 console.log('[KCR] Resuming potentially suspended audio context after stop.');
+                 audioContext.resume().catch(e => console.error("[KCR] Error resuming audio context:", e)); 
+             }
+             // Clean up references
+             oscillator = null;
+             gainNode = null;
+             console.log('[KCR] Oscillator and GainNode references cleared.');
+        }
+
+        // --- Visual Logic (from lambdoma_keyboard.html, adapted) ---
+        function renderKingLissajous(freq, canvasCtx, color) {
+            // Map frequency to a simple ratio for visual purposes
+            // These ratios are arbitrary choices for visual effect
+            let ratioStr = "1:1"; 
+            if (freq === 128) ratioStr = "2:1";
+            else if (freq === 192) ratioStr = "3:1"; // Or "3:2"? Experiment visually
+            else if (freq === 384) ratioStr = "3:2"; // Or "4:1"? Experiment visually
+            // else keep 1:1 for 64Hz or others
+
+            let xRatio = 1, yRatio = 1;
+            try {
+                 [xRatio, yRatio] = ratioStr.split(':').map(Number);
+            } catch (e) { console.warn("Invalid ratio for Lissajous:", ratioStr); xRatio=1; yRatio=1; }
+            
+            if (isNaN(xRatio) || isNaN(yRatio) || xRatio <= 0 || yRatio <= 0) {
+                xRatio = 1; yRatio = 1; // Default on error
+            }
+            
+            const width = canvasCtx.canvas.width;
+            const height = canvasCtx.canvas.height;
+            const padding = 30; // Padding inside the canvas
+            const amplitudeX = (width / 2) - padding;
+            const amplitudeY = (height / 2) - padding;
+            const delta = Math.PI / 2; // Phase difference (π/2 gives a circle/ellipse for 1:1)
+            const points = 600; // More points for smoother curves, especially complex ones
+            const increment = (Math.PI * 2 * Math.max(xRatio, yRatio)) / points; // Adjust speed based on ratio complexity
+
+            canvasCtx.clearRect(0, 0, width, height);
+            canvasCtx.beginPath();
+            canvasCtx.strokeStyle = color;
+            canvasCtx.lineWidth = 1.0; // Thinner line for KCR?
+            canvasCtx.globalAlpha = 0.9; // Slightly transparent
+
+            let firstX = 0, firstY = 0;
+            for (let i = 0; i <= points; i++) {
+                const t = i * increment;
+                // Use cosine for one axis and sine for the other to ensure rotation
+                const x = amplitudeX * Math.sin(xRatio * t + delta); 
+                const y = amplitudeY * Math.sin(yRatio * t); 
+                const screenX = (width / 2) + x;
+                const screenY = (height / 2) + y;
+
+                if (i === 0) {
+                    canvasCtx.moveTo(screenX, screenY);
+                    firstX = screenX; firstY = screenY;
+                } else {
+                    canvasCtx.lineTo(screenX, screenY);
+                }
+            }
+            // canvasCtx.lineTo(firstX, firstY); // Optionally close the path
+            canvasCtx.stroke();
+            canvasCtx.globalAlpha = 1.0; // Reset alpha
+        }
+
+        // --- Event Listeners --- 
+        toneButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const freq = parseFloat(button.dataset.freq);
+                const duration = parseFloat(button.dataset.duration);
+                playKingTone(freq, duration);
+            });
+        });
+
+        stopButton.addEventListener('click', () => stopPlayback(true));
+        
+        // Initialize audio on first interaction (good practice)
+        document.body.addEventListener('click', initAudio, { once: true });
+        document.body.addEventListener('touchstart', initAudio, { once: true });
+
+        // Initial visual state (optional - maybe just leave it blank?)
+        // renderKingLissajous(64, ctx, visualColor); // Example: Draw 1:1 initially
+    });
+</script>
+{% endblock %} 

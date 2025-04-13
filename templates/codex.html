@@ -1,0 +1,56 @@
+<!-- templates/codex.html -->
+{% extends 'base.html' %}
+
+{% block title %}Codex Archive - Glyphica{% endblock %}
+
+{% block content %}
+    <div class="p-4 md:p-8 flex flex-col">
+       <header class="mb-8 text-center">
+         <h1 class="text-3xl font-serif text-primary">Codex Archive</h1>
+         <p class="text-sm text-text-muted mt-1">Your complete symbolic history.</p>
+       </header>
+
+       <main class="flex-grow">
+         {% if glyphs %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+                {% for glyph in glyphs %}
+                    {# Basic Glyph Card - Reuse/Refine from React version's logic #}
+                    <div class="relative border rounded-lg overflow-hidden shadow-md flex flex-col 
+                        {% if glyph.dream %}border-accent-dream/60 hover:border-accent-dream dream-glyph-card{% else %}border-border-subtle hover:border-gray-600 bg-zinc-800/50{% endif %}"
+                        title="{% if glyph.dream %}Dream Glyph: Emerged autonomously...{% else %}{{ glyph.intention }}{% endif %}">
+                        
+                        {% if glyph.dream %}
+                            <span class="absolute top-1.5 right-1.5 z-10 text-accent-dream">✶</span>
+                        {% endif %}
+
+                        <div class="aspect-square w-full flex items-center justify-center p-2 {% if glyph.dream %}bg-gradient-to-br from-zinc-900 via-purple-900/30 to-zinc-900{% else %}bg-zinc-700/50{% endif %}">
+                           {{ glyph.imageUrl | safe }}
+                        </div>
+                        <div class="p-3 text-xs bg-zinc-800">
+                            <p class="font-medium text-primary mb-1 truncate" title="{{ glyph.intention }}">"{{ glyph.intention }}"</p>
+                            <p class="text-text-muted">{{ glyph.date[:10] }}</p> {# Simple date format #}
+                            {# -- Display Chakra/Harmonic Info -- #}
+                            <div class="mt-1 text-text-muted">
+                                {% if glyph.subtleEnergy and glyph.subtleEnergy.chakra %}
+                                    <span class="mr-2">Chakra: {{ glyph.subtleEnergy.chakra }}</span>
+                                {% endif %}
+                                {% if glyph.harmonic and glyph.harmonic.ratio %}
+                                    <span class="mr-2">Ratio: {{ glyph.harmonic.ratio }}</span>
+                                {% endif %}
+                                {% if glyph.harmonic and glyph.harmonic.note %}
+                                    <span class="mr-2">Note: {{ glyph.harmonic.note }}</span>
+                                {% endif %}
+                            </div>
+                             {# -- End Display -- #}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+         {% else %}
+            <div class="text-center py-10">
+                <p class="text-text-muted">Your Codex is empty. Begin a <a href="{{ url_for('ritual') }}">ritual</a>.</p>
+            </div>
+         {% endif %}
+       </main>
+    </div>
+{% endblock %} 

@@ -1,0 +1,82 @@
+<!-- templates/home.html -->
+{% extends 'base.html' %}
+
+{% block title %}{{ codex_name or 'Sanctum' }} - Glyphica{% endblock %}
+
+{% block head %}
+    <!-- Add any home-specific head elements -->
+{% endblock %}
+
+{% block content %}
+    <div class="p-4 md:p-8 flex flex-col">
+        <header class="mb-8 text-center">
+            <h1 class="text-2xl font-serif text-text-muted">{{ codex_name or 'Your Codex' }}</h1>
+        </header>
+
+        <main class="flex-grow flex flex-col items-center space-y-8 md:space-y-12">
+            <!-- Glyph of the Moment -->
+            <section class="text-center w-full max-w-md">
+                <h2 class="text-sm uppercase tracking-widest text-text-muted mb-4">Glyph of the Moment</h2>
+                {% if display_glyph %}
+                    <div class="w-48 h-48 md:w-64 md:h-64 mx-auto border flex items-center justify-center rounded-lg shadow-md relative 
+                        {% if display_glyph.dream %}border-accent-dream/60 border-2 dream-glyph{% else %}border-border-subtle bg-zinc-800/50{% endif %}"
+                        title="{% if display_glyph.dream %}Dream Glyph: Emerged autonomously...{% else %}{{ display_glyph.intention }}{% endif %}"
+                        >
+                        {% if display_glyph.dream %}
+                            <span class="absolute top-2 right-2 text-accent-dream text-lg">✶</span> {# Placeholder for sparkle icon #}
+                        {% endif %}
+                        
+                        {# Assuming imageUrl is safe SVG string #}
+                        {{ display_glyph.imageUrl | safe }}
+                    </div>
+                    {# -- Display Chakra/Harmonic Info -- #}
+                    <div class="mt-2 text-xs text-text-muted text-center">
+                        {% if display_glyph.subtleEnergy and display_glyph.subtleEnergy.chakra %}
+                            <span class="mr-2">Chakra: {{ display_glyph.subtleEnergy.chakra }}</span>
+                        {% endif %}
+                        {% if display_glyph.harmonic and display_glyph.harmonic.ratio %}
+                            <span class="mr-2">Ratio: {{ display_glyph.harmonic.ratio }}</span>
+                        {% endif %}
+                        {% if display_glyph.harmonic and display_glyph.harmonic.note %}
+                            <span class="mr-2">Note: {{ display_glyph.harmonic.note }}</span>
+                        {% endif %}
+                        {# Add Psi Charge later if needed #}
+                        {# {% if display_glyph.subtleEnergy and display_glyph.subtleEnergy.psiChargeLevel is not none %} #}
+                        {#    <span class="ml-2">Psi: {{ display_glyph.subtleEnergy.psiChargeLevel }}</span> #}
+                        {# {% endif %} #}
+                    </div>
+                    {# -- End Display -- #}
+                {% else %}
+                    <div class="w-48 h-48 md:w-64 md:h-64 mx-auto border border-dashed border-border-subtle flex items-center justify-center rounded-lg bg-zinc-800/30">
+                        <p class="text-text-muted">No glyphs yet.</p>
+                    </div>
+                {% endif %}
+            </section>
+
+            <!-- Resonance Meter (Placeholder) -->
+            <section class="w-full max-w-lg">
+                <h2 class="text-sm uppercase tracking-widest text-text-muted mb-3 text-center">Resonance</h2>
+                <div class="h-10 w-full bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 rounded-full opacity-30 animate-pulse"></div>
+            </section>
+
+            <!-- Mirror Feed (Placeholder) -->
+            <section class="w-full max-w-lg">
+                <h2 class="text-sm uppercase tracking-widest text-text-muted mb-3 text-center">Mirror Feed</h2>
+                <div class="bg-zinc-800/30 border border-border-subtle rounded-lg shadow-inner max-h-60 overflow-y-auto">
+                    {% if recent_logs %}
+                        {% for log in recent_logs %}
+                            <div class="py-2 px-3 border-b border-border-subtle flex items-center space-x-3 text-sm">
+                                <span class="text-text-muted">{% if log.tags and 'dream' in log.tags %}✶{% else %}🌀{% endif %}</span>
+                                <span class="flex-1 text-text-base truncate">{{ log.text }}</span>
+                                {# TODO: Format timestamp properly #}
+                                <span class="text-text-muted">{{ log.timestamp[:16] }}</span> 
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="p-4 text-center text-text-muted">No entries yet.</p>
+                    {% endif %}
+                </div>
+            </section>
+        </main>
+    </div>
+{% endblock %} 

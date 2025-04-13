@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Resonance Loop Tester{% endblock %}
+
+{% block content %}
+<div class="p-4 md:p-8">
+    <h1 class="text-2xl font-serif text-primary mb-4">Resonance Loop Tester (Debug)</h1>
+
+    <form method="GET" action="{{ url_for('debug_resonance') }}" class="mb-8 p-4 border rounded border-border-subtle bg-zinc-800/50">
+        <div class="flex flex-wrap items-end gap-4">
+            <div>
+                <label for="glyph_id_1" class="block text-sm font-medium text-text-muted mb-1">Glyph 1 ID:</label>
+                <select id="glyph_id_1" name="glyph_id_1" class="w-full p-2 border rounded bg-input text-text-base focus:ring-accent focus:border-accent">
+                    <option value="">Select Glyph 1</option>
+                    {% for glyph in all_glyphs %}
+                        <option value="{{ glyph.id }}" {% if glyph.id == request.args.get('glyph_id_1') %}selected{% endif %}>{{ glyph.id }} ("{{ glyph.intention|truncate(20) }}")</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="glyph_id_2" class="block text-sm font-medium text-text-muted mb-1">Glyph 2 ID:</label>
+                <select id="glyph_id_2" name="glyph_id_2" class="w-full p-2 border rounded bg-input text-text-base focus:ring-accent focus:border-accent">
+                    <option value="">Select Glyph 2</option>
+                    {% for glyph in all_glyphs %}
+                        <option value="{{ glyph.id }}" {% if glyph.id == request.args.get('glyph_id_2') %}selected{% endif %}>{{ glyph.id }} ("{{ glyph.intention|truncate(20) }}")</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="px-4 py-2 bg-accent text-white rounded hover:bg-accent-hover">Test Resonance</button>
+        </div>
+    </form>
+
+    {% if glyph1 and glyph2 %}
+        <h2 class="text-xl font-serif text-primary mb-4">Results:</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div class="p-4 border rounded border-border-subtle bg-zinc-800/30">
+                <h3 class="font-semibold mb-2">Glyph 1: {{ glyph1.id }}</h3>
+                <p>Intention: "{{ glyph1.intention }}"</p>
+                <p>Chakra: {{ glyph1.subtleEnergy.chakra or 'N/A' }}</p>
+                <p>Ratio: {{ glyph1.harmonic.ratio or 'N/A' }}</p>
+                <p>Note: {{ glyph1.harmonic.note or 'N/A' }}</p>
+            </div>
+             <div class="p-4 border rounded border-border-subtle bg-zinc-800/30">
+                <h3 class="font-semibold mb-2">Glyph 2: {{ glyph2.id }}</h3>
+                <p>Intention: "{{ glyph2.intention }}"</p>
+                <p>Chakra: {{ glyph2.subtleEnergy.chakra or 'N/A' }}</p>
+                <p>Ratio: {{ glyph2.harmonic.ratio or 'N/A' }}</p>
+                <p>Note: {{ glyph2.harmonic.note or 'N/A' }}</p>
+            </div>
+        </div>
+
+        <div class="p-4 border rounded border-accent bg-zinc-800">
+            <h3 class="font-semibold mb-2 text-accent">Resonance Analysis:</h3>
+            <p>Combined Ratio (Placeholder): {{ combined_ratio or 'N/A' }}</p>
+            <p>Derived Chakra (Placeholder): {{ derived_chakra or 'No specific activation detected.' }}</p>
+            <pre class="mt-2 text-xs text-text-muted bg-black/20 p-2 rounded">[{{ glyph1.id }}] {{ glyph1.subtleEnergy.chakra or '?' }} + [{{ glyph2.id }}] {{ glyph2.subtleEnergy.chakra or '?' }} → Activates {{ derived_chakra or '?' }}</pre>
+        </div>
+
+    {% elif request.args.get('glyph_id_1') or request.args.get('glyph_id_2') %}
+        <p class="text-warning">Please select two valid glyphs to test resonance.</p>
+    {% endif %}
+
+</div>
+{% endblock %} 

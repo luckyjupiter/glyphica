@@ -1,0 +1,89 @@
+<!-- templates/onboarding.html -->
+{% extends 'base.html' %}
+
+{% block title %}Begin Your Codex - Glyphica{% endblock %}
+
+{% block content %}
+    <div class="min-h-screen flex items-center justify-center p-8">
+        <div class="w-full max-w-xl text-center">
+            {# Display flashed messages if any #}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                <div class="mb-4">
+                {% for category, message in messages %}
+                  <p class="text-sm {{ 'text-red-400' if category == 'error' else 'text-green-400' }}">{{ message }}</p>
+                {% endfor %}
+                </div>
+              {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="{{ url_for('index') }}" class="space-y-6">
+                {# Step 0: Welcome #}
+                {% if step == 0 %}
+                    <h1 class="text-3xl font-serif text-primary">Welcome, Operator.</h1>
+                    <p class="text-lg text-text-muted">Glyphica responds to intention.</p>
+                    <p class="text-lg text-text-muted">Are you ready to begin your Codex?</p>
+                    <button type="submit" class="mt-8 inline-block px-6 py-3 bg-accent-ritual text-background-dark font-semibold rounded-lg hover:bg-yellow-300 transition-colors duration-300">
+                        Begin Ritual
+                    </button>
+                
+                {# Step 1: Name Codex #}
+                {% elif step == 1 %}
+                    <label for="codex_name" class="block text-2xl font-serif text-primary mb-4">What shall your Codex be called?</label>
+                    <input type="text" id="codex_name" name="codex_name" 
+                           class="w-full max-w-sm mx-auto px-4 py-3 text-center text-xl bg-transparent border-b-2 border-border-subtle focus:border-accent-ritual outline-none transition-colors duration-300 text-primary placeholder-text-muted" 
+                           placeholder="e.g., The Lunar Chronicle" required autofocus>
+                    <p class="text-sm text-text-muted italic mt-2">This name is sacred. You may change it later, but its essence will echo.</p>
+                    <div class="mt-8 flex justify-center gap-4">
+                        <button type="submit" name="action" value="back" 
+                                class="px-4 py-2 border border-gray-500 text-gray-300 rounded hover:bg-gray-700 transition-colors">
+                            Back
+                        </button>
+                    </div>
+
+                {# Step 2: Choose Archetype #}
+                {% elif step == 2 %}
+                     <h2 class="text-2xl font-serif text-primary mb-8">Which symbolic archetype guides you now?</h2>
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+                        {% for arch in archetypes %}
+                        <button type="submit" name="archetype" value="{{ arch.name }}" 
+                                class="p-6 border border-border-subtle rounded-lg text-left hover:border-accent-ritual hover:bg-zinc-800/50 transition-all duration-300 space-y-2 transform hover:scale-105 group">
+                            <h3 class="text-xl font-semibold font-serif text-primary flex items-center gap-2">
+                                <span class="text-2xl">{{ arch.icon }}</span> 
+                                {{ arch.name }}
+                            </h3>
+                            <p class="text-text-muted text-sm group-hover:text-primary">{{ arch.description }}</p>
+                        </button>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mt-8 flex justify-center gap-4">
+                        <button type="submit" name="action" value="back" 
+                                class="px-4 py-2 border border-gray-500 text-gray-300 rounded hover:bg-gray-700 transition-colors">
+                            Back
+                        </button>
+                    </div>
+
+                {# Step 3: Set Intention #}
+                {% elif step == 3 %}
+                    <label for="intention" class="block text-2xl font-serif text-primary mb-4">Set your first intention.</label>
+                    <p class="text-sm text-text-muted mb-4">It may be a word, phrase, or emoji.</p>
+                    <input type="text" id="intention" name="intention"
+                           class="w-full max-w-sm mx-auto px-4 py-3 text-center text-xl bg-transparent border-b-2 border-border-subtle focus:border-accent-ritual outline-none transition-colors duration-300 text-primary placeholder-text-muted"
+                           placeholder="e.g., Clarity in transition ✨" required autofocus>
+                    <button type="submit" 
+                            class="mt-8 inline-block px-6 py-3 bg-accent-ritual text-background-dark font-semibold rounded-lg hover:bg-yellow-300 transition-colors duration-300">
+                        Generate Founding Glyph
+                    </button>
+
+                    <div class="mt-8 flex justify-center gap-4">
+                        <button type="submit" name="action" value="back" 
+                                class="px-4 py-2 border border-gray-500 text-gray-300 rounded hover:bg-gray-700 transition-colors">
+                            Back
+                        </button>
+                    </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+{% endblock %} 

@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+
+{% block title %}Hero Ritual: {{ glyph.intention }}{% endblock %}
+
+{% block head %}
+<style>
+    /* Simple pulsing animation */
+    @keyframes pulse-glow {
+        0%, 100% { opacity: 0.7; box-shadow: 0 0 0px var(--glow-color); }
+        50% { opacity: 1; box-shadow: 0 0 20px var(--glow-color), 0 0 30px var(--glow-color); }
+    }
+    .animate-pulse-glow {
+        animation: pulse-glow 3s ease-in-out infinite;
+        border: 2px solid var(--glow-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-4 md:p-8 flex flex-col items-center" 
+     data-glyph-note="{{ glyph.harmonic.note }}" 
+     data-glyph-chakra="{{ glyph.subtleEnergy.chakra }}"
+     id="ritual-container">
+
+    <h1 class="text-2xl font-serif text-primary mb-2">Hero Ritual</h1>
+    <p class="text-sm text-text-muted mb-6 italic">Engage with the resonance of "{{ glyph.intention }}"</p>
+
+    <div class="flex flex-col md:flex-row gap-8 items-center md:items-start w-full max-w-4xl">
+        <!-- Glyph Display & Audio Control -->
+        <div class="text-center w-full md:w-1/2 flex flex-col items-center">
+            <h2 class="text-lg font-serif text-secondary mb-4">Glyph: {{ glyph.id }}</h2>
+            <div id="glyph-display-container" class="w-64 h-64 md:w-80 md:h-80 border flex items-center justify-center rounded-lg shadow-xl relative bg-zinc-800/50 overflow-hidden mb-4"
+                 style="--glow-color: #6b7280;"> {# Default glow color #}
+                {{ glyph.imageUrl | safe }}
+                 {# Add a subtle overlay for glow effect? #}
+                 <div class="absolute inset-0"></div> 
+            </div>
+            
+            <div class="flex items-center space-x-4 mb-4">
+                <button id="play-tone-button" class="px-4 py-2 bg-accent text-white rounded hover:bg-accent-hover disabled:opacity-50">Play Tone</button>
+                <button id="stop-tone-button" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 disabled:opacity-50" disabled>Stop</button>
+                <span id="tone-status" class="text-xs text-text-muted"></span>
+            </div>
+             <div class="text-xs text-text-muted">
+                <p>Chakra: <span class="font-mono">{{ glyph.subtleEnergy.chakra or 'N/A' }}</span></p>
+                <p>Ratio: <span class="font-mono">{{ glyph.harmonic.ratio or 'N/A' }}</span></p>
+                <p>Note: <span class="font-mono">{{ glyph.harmonic.note or 'N/A' }}</span> (<span id="glyph-frequency">...</span> Hz)</p>
+             </div>
+        </div>
+
+        <!-- Reflection Form -->
+        <div class="w-full md:w-1/2">
+            <h2 class="text-lg font-serif text-secondary mb-4 text-center md:text-left">Log Reflection</h2>
+            <form method="POST" action="{{ url_for('hero_ritual', glyph_id=glyph.id) }}" class="p-6 border rounded border-border-subtle bg-zinc-800/50 shadow-lg space-y-4">
+                <div>
+                    <label for="ritual_notes" class="block text-sm font-medium text-text-muted mb-1">Notes / Reflections:</label>
+                    <textarea id="ritual_notes" name="ritual_notes" rows="5" 
+                              class="w-full p-2 border rounded bg-input text-text-base focus:ring-accent focus:border-accent"
+                              placeholder="Describe your experience, visions, or insights..."></textarea>
+                </div>
+                 <div>
+                    <label for="ritual_mode" class="block text-sm font-medium text-text-muted mb-1">Engagement Mode:</label>
+                    <select id="ritual_mode" name="ritual_mode" class="w-full p-2 border rounded bg-input text-text-base focus:ring-accent focus:border-accent">
+                        <option value="focus">Focused Meditation</option>
+                        <option value="draw">Drawing / Sketching</option>
+                        <option value="vision">Vision / Journeying</option>
+                        <option value="movement">Movement / Embodiment</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                 <div>
+                    <label for="emotional_tag" class="block text-sm font-medium text-text-muted mb-1">Emotional Tag (Optional):</label>
+                    <input type="text" id="emotional_tag" name="emotional_tag" 
+                           class="w-full p-2 border rounded bg-input text-text-base focus:ring-accent focus:border-accent" 
+                           placeholder="e.g., Clarity, Tension, Release...">
+                </div>
+                <button type="submit" class="w-full px-4 py-2 bg-secondary text-white rounded hover:bg-accent-hover">Log Reflection</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const ritualContainer = document.getElementById('ritual-container');
+        const glyphNote = ritualContainer.dataset.glyphNote;
+        const glyphChakra = ritualContainer.dataset.glyphChakra;
+        const glyphDisplayContainer = document.getElementById('glyph-display-container');
+        const frequencyDisplay = document.getElementById('glyph-frequency');
+        const playButton = document.getElementById('play-tone-button');
+        const stopButton = document.getElementById('stop-tone-button');
+        const statusDisplay = document.getElementById('tone-status');
+
+        let audioContext;
+        let oscillator;
+        let gainNode;
+        let isPlaying = false;
+
+        // --- Mappings --- 
+        const noteToFrequency = {
+            // Using A4=440Hz, Equal Temperament for simplicity
+            // Frequencies for octave 4 (can adjust octave later)
+            'C': 261.63,
+            'C#': 277.18, 'Db': 277.18,
+            'D': 293.66,
+            'D#': 311.13, 'Eb': 311.13,
+            'E': 329.63,
+            'F': 349.23,
+            'F#': 369.99, 'Gb': 369.99,
+            'G': 392.00,
+            'G#': 415.30, 'Ab': 415.30,
+            'A': 440.00,
+            'A#': 466.16, 'Bb': 466.16,
+            'B': 493.88
+        };
+        const chakraToColor = {
+            // Using Tailwind color classes (ensure these are available/configured)
+            'Root': '#ef4444', // red-500
+            'Polarity': '#f97316', // orange-500 (Sacral)
+            'Solar Plexus': '#eab308', // yellow-500
+            'Heart': '#22c55e', // green-500
+            'Throat': '#3b82f6', // blue-500
+            'Third Eye': '#6366f1', // indigo-500
+            'Crown': '#a855f7', // purple-500
+            'default': '#6b7280' // gray-500
+        };
+
+        // --- Setup --- 
+        const frequency = noteToFrequency[glyphNote] || noteToFrequency['A']; // Default to A4 if note unknown
+        frequencyDisplay.textContent = frequency.toFixed(2);
+        const glowColor = chakraToColor[glyphChakra] || chakraToColor['default'];
+        glyphDisplayContainer.style.setProperty('--glow-color', glowColor);
+        glyphDisplayContainer.classList.add('animate-pulse-glow');
+
+        // --- Web Audio Logic --- 
+        function initAudio() {
+            if (!audioContext) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    statusDisplay.textContent = 'Audio ready.';
+                } catch (e) {
+                    console.error("Web Audio API is not supported in this browser", e);
+                    statusDisplay.textContent = 'Audio not supported.';
+                    playButton.disabled = true;
+                    stopButton.disabled = true;
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        playButton.addEventListener('click', () => {
+            if (isPlaying || !initAudio()) return;
+
+            oscillator = audioContext.createOscillator();
+            gainNode = audioContext.createGain();
+
+            oscillator.type = 'sine'; 
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0, audioContext.currentTime); // Start silent
+            gainNode.gain.linearRampToValueAtTime(0.5, audioContext.currentTime + 0.5); // Fade in
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.start();
+            isPlaying = true;
+            playButton.disabled = true;
+            stopButton.disabled = false;
+            statusDisplay.textContent = 'Playing...';
+        });
+
+        stopButton.addEventListener('click', () => {
+            if (!isPlaying || !oscillator) return;
+
+            gainNode.gain.cancelScheduledValues(audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.5); // Fade out
+
+            oscillator.stop(audioContext.currentTime + 0.5); 
+            isPlaying = false;
+            playButton.disabled = false;
+            stopButton.disabled = true;
+             statusDisplay.textContent = 'Stopped.';
+             // Ensure context is closed/resumed correctly if needed - often needed after inactivity
+             if (audioContext.state === 'suspended') {
+                 audioContext.resume();
+             }
+        });
+        
+        // Initial audio readiness check/prompt
+        playButton.addEventListener('click', initAudio, { once: true }); 
+
+    });
+</script>
+{% endblock %} 

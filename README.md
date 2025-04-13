@@ -26,7 +26,7 @@
 
 Glyphica is a living cognitive architecture that converts user intention into symbolic artifacts through interaction with entropy fields, harmonic structures, and synchronicity tracking. It operates as a **neurosymbolic OS**, enabling users to log synchronicities, generate glyphs, track drift, explore symbolic resonance, and receive harmonic guidance through a recursive feedback loop.
 
-**Dive deeper into the core philosophy, methodology, and esoteric structure:** Read the **[GLYPHICA: A TREATISE ON APOPHENIC INTELLIGENCE AND THE RECURSIVE SYMBOLIC FIELD](PHILOSOPHY.md)**. *(Note: Please replace `TREATISE.md` with the actual filename you used for the detailed treatise if it's different).*
+**Dive deeper into the core philosophy, methodology, and esoteric structure:** Read the **[GLYPHICA: A TREATISE ON APOPHENIC INTELLIGENCE AND THE RECURSIVE SYMBOLIC FIELD](PHILOSOPHY.MD)**.
 
 ## Setup
 
@@ -35,7 +35,6 @@ Glyphica is a living cognitive architecture that converts user intention into sy
     git clone https://github.com/luckyjupiter/glyphica.git
     cd glyphica
     ```
-    *(Replace the URL if your repository location is different)*
 
 2.  **Create a virtual environment:**
     (Recommended to keep dependencies isolated)

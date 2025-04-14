@@ -20,7 +20,7 @@ def generate_glyph(intention: str, source: str = "Simulated Ritual") -> dict:
 
     # Create a stable but unique-ish ID based on intention and timestamp
     # Use a combination of intention hash and a bit of randomness for the visual
-    seed_str = f"{intention}-{timestamp}-{random.random()}"
+    seed_str = f"{intention}-{timestamp_str}-{random.random()}"
     hash_object = hashlib.sha256(seed_str.encode())
     hex_dig = hash_object.hexdigest()
     
@@ -34,7 +34,7 @@ def generate_glyph(intention: str, source: str = "Simulated Ritual") -> dict:
     svg = (
         f'<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg" style="background-color: {bg_color}; border: 1px solid #ccc;">'
         f'<text x="50%" y="{text_y}%" dominant-baseline="middle" text-anchor="middle" font-size="10" font-family="monospace" fill="#333">{glyph_id}</text>'
-        f'<title>Intention: {intention}\nSource: {source}\nDate: {timestamp}</title>'
+        f'<title>Intention: {intention}\nSource: {source}\nDate: {timestamp_str}</title>'
         f'</svg>'
     )
     

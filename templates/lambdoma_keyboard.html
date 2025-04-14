@@ -109,6 +109,12 @@ block head %}
 			<p id="visual-info" class="text-xs text-text-muted mt-2 text-center">
 				Click a cell to visualize resonance
 			</p>
+			<div class="mt-2 flex items-center">
+				<input type="checkbox" id="animation-toggle" class="mr-2" checked />
+				<label for="animation-toggle" class="text-xs text-text-muted"
+					>Animate Pattern</label
+				>
+			</div>
 		</div>
 	</div>
 
@@ -133,10 +139,44 @@ block head %}
 		const canvas = document.getElementById("lissajous-canvas");
 		const visualInfo = document.getElementById("visual-info");
 		const clearAllButton = document.getElementById("clear-all-button");
+		const animationToggle = document.getElementById("animation-toggle");
 		const ctx = canvas.getContext("2d");
 
 		let audioContext;
 		let activeCells = new Map(); // Map to store active cells and their oscillators
+		let animationId = null; // Store animation frame ID
+		let phaseOffset = 0; // Phase offset for animation
+		let animationEnabled = true; // Animation state
+
+		// Initialize animation toggle from checkbox
+		animationEnabled = animationToggle.checked;
+
+		// Add event listener for animation toggle
+		animationToggle.addEventListener("change", (e) => {
+			animationEnabled = e.target.checked;
+
+			// If animation was turned on and we have active cells, start animation
+			if (animationEnabled && activeCells.size > 0 && !animationId) {
+				animationId = requestAnimationFrame(animateLissajous);
+			}
+			// If animation was turned off, stop it and render static pattern
+			else if (!animationEnabled && animationId) {
+				cancelAnimationFrame(animationId);
+				animationId = null;
+
+				// Render static pattern for the last active cell
+				if (activeCells.size > 0) {
+					const lastCell = Array.from(activeCells.entries()).pop();
+					if (lastCell) {
+						const [cellElement, audioData] = lastCell;
+						const row = parseInt(cellElement.dataset.row);
+						const col = parseInt(cellElement.dataset.col);
+						const color = cellElement.dataset.color;
+						renderLissajous(row, col, ctx, color, 0); // Static pattern with phase 0
+					}
+				}
+			}
+		});
 
 		// --- Task 3: Web Audio Tone Synthesis ---
 		function initAudio() {
@@ -210,13 +250,12 @@ block head %}
 		}
 
 		// --- Task 4: Visual Resonance Display ---
-		function renderLissajous(xRatio, yRatio, canvasCtx, color) {
+		function renderLissajous(xRatio, yRatio, canvasCtx, color, phase = 0) {
 			const width = canvasCtx.canvas.width;
 			const height = canvasCtx.canvas.height;
 			const padding = 20;
 			const amplitudeX = width / 2 - padding;
 			const amplitudeY = height / 2 - padding;
-			const delta = Math.PI / 2; // Phase difference
 			const points = 500; // Number of points to draw
 			const increment = (Math.PI * 2 * Math.max(xRatio, yRatio)) / points; // Adjust speed based on ratio
 
@@ -226,53 +265,153 @@ block head %}
 			canvasCtx.lineWidth = 1.5;
 			canvasCtx.globalAlpha = 0.8;
 
-			let firstX = 0,
-				firstY = 0;
 			for (let i = 0; i <= points; i++) {
 				const t = i * increment;
-				const x = amplitudeX * Math.sin(xRatio * t + delta);
+				// Add phase to create animation
+				const x = amplitudeX * Math.sin(xRatio * t + phase);
 				const y = amplitudeY * Math.sin(yRatio * t);
 				const screenX = width / 2 + x;
 				const screenY = height / 2 + y;
 
 				if (i === 0) {
 					canvasCtx.moveTo(screenX, screenY);
-					firstX = screenX;
-					firstY = screenY;
 				} else {
 					canvasCtx.lineTo(screenX, screenY);
 				}
 			}
-			// Optional: close the path if it looks better for low ratios
-			// canvasCtx.lineTo(firstX, firstY);
 			canvasCtx.stroke();
 			canvasCtx.globalAlpha = 1.0;
 		}
 
-		// New function to update the visualization based on active cells
+		// New function to render a true combined Lissajous pattern
+		function renderCombinedLissajous(canvasCtx, phase = 0) {
+			if (activeCells.size === 0) return;
+
+			const width = canvasCtx.canvas.width;
+			const height = canvasCtx.canvas.height;
+			const padding = 20;
+			const centerX = width / 2;
+			const centerY = height / 2;
+
+			canvasCtx.clearRect(0, 0, width, height);
+
+			// If only one cell is active, use the standard Lissajous
+			if (activeCells.size === 1) {
+				const [cellElement, audioData] = Array.from(activeCells.entries())[0];
+				const row = parseInt(cellElement.dataset.row);
+				const col = parseInt(cellElement.dataset.col);
+				const color = cellElement.dataset.color;
+				renderLissajous(row, col, ctx, color, phase);
+				return;
+			}
+
+			// For multiple cells, create a true combined visualization
+			// Get all active frequencies
+			const activeFreqs = Array.from(activeCells.keys()).map((cell) => ({
+				x: parseInt(cell.dataset.row),
+				y: parseInt(cell.dataset.col),
+				color: cell.dataset.color,
+			}));
+
+			// Draw the combined pattern
+			canvasCtx.beginPath();
+			canvasCtx.strokeStyle = "#ffffff"; // Use white for combined pattern
+			canvasCtx.lineWidth = 1.5;
+
+			const points = 1000; // More points for smoother curve
+			const timeStep = 0.01;
+
+			// Create parametric function that combines all frequencies
+			for (let i = 0; i < points; i++) {
+				const t = i * timeStep;
+
+				// Sum the contributions of all frequencies for x and y
+				let x = 0;
+				let y = 0;
+
+				// Use the first half of frequencies for x and second half for y
+				const halfPoint = Math.ceil(activeFreqs.length / 2);
+
+				for (let j = 0; j < halfPoint; j++) {
+					x += Math.sin(activeFreqs[j].x * t + phase) / halfPoint;
+				}
+
+				for (let j = halfPoint; j < activeFreqs.length; j++) {
+					y +=
+						Math.sin(activeFreqs[j].y * t) / (activeFreqs.length - halfPoint);
+				}
+
+				// Scale to canvas
+				const amplitudeX = width / 2 - padding;
+				const amplitudeY = height / 2 - padding;
+				const screenX = centerX + x * amplitudeX;
+				const screenY = centerY + y * amplitudeY;
+
+				if (i === 0) {
+					canvasCtx.moveTo(screenX, screenY);
+				} else {
+					canvasCtx.lineTo(screenX, screenY);
+				}
+			}
+
+			canvasCtx.stroke();
+
+			// Draw small indicators for each active frequency
+			activeFreqs.forEach((freq, index) => {
+				canvasCtx.beginPath();
+				canvasCtx.fillStyle = freq.color;
+				canvasCtx.arc(20, 20 + index * 15, 5, 0, Math.PI * 2);
+				canvasCtx.fill();
+			});
+		}
+
+		// Function to animate the Lissajous pattern
+		function animateLissajous() {
+			if (activeCells.size === 0 || !animationEnabled) {
+				if (animationId) {
+					cancelAnimationFrame(animationId);
+					animationId = null;
+				}
+				return;
+			}
+
+			// Increment phase for animation
+			phaseOffset += 0.02;
+			if (phaseOffset > Math.PI * 2) {
+				phaseOffset -= Math.PI * 2; // Keep within 0-2π range
+			}
+
+			// Render the combined visualization
+			renderCombinedLissajous(ctx, phaseOffset);
+
+			animationId = requestAnimationFrame(animateLissajous);
+		}
+
+		// Function to update the visualization based on active cells
 		function updateVisualization() {
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 			if (activeCells.size === 0) {
 				visualInfo.textContent = "Click cells to create harmonies";
+				if (animationId) {
+					cancelAnimationFrame(animationId);
+					animationId = null;
+				}
 				return;
-			}
-
-			// For simplicity, just show the last activated cell's Lissajous
-			// A more complex implementation could blend multiple patterns
-			const lastCell = Array.from(activeCells.entries()).pop();
-			if (lastCell) {
-				const [cellElement, audioData] = lastCell;
-				const row = parseInt(cellElement.dataset.row);
-				const col = parseInt(cellElement.dataset.col);
-				const color = cellElement.dataset.color;
-				renderLissajous(row, col, ctx, color);
 			}
 
 			// Update info text to show number of active tones
 			visualInfo.textContent = `${activeCells.size} active tone${
 				activeCells.size > 1 ? "s" : ""
 			}`;
+
+			// Start animation if enabled and not already running
+			if (animationEnabled && !animationId) {
+				animationId = requestAnimationFrame(animateLissajous);
+			} else if (!animationEnabled) {
+				// Render static combined pattern
+				renderCombinedLissajous(ctx, 0); // Static pattern with phase 0
+			}
 		}
 
 		// Function to clear all active cells
@@ -283,6 +422,12 @@ block head %}
 			});
 			activeCells.clear();
 			updateVisualization();
+
+			// Ensure animation stops
+			if (animationId) {
+				cancelAnimationFrame(animationId);
+				animationId = null;
+			}
 		}
 
 		// Clear all button event listener

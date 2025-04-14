@@ -42,93 +42,135 @@ block head %}
 		background-color: #1f2937e0; /* gray-800 with transparency */
 		aspect-ratio: 1 / 1;
 		width: 100%;
-		max-width: 300px; /* Adjust size */
+		max-width: 400px; /* Increased from 300px */
 	}
 	/* Ensure consistent sizing between grid and canvas containers */
 	.keyboard-container {
 		max-width: 70vh;
-		margin: auto;
+		margin: 0; /* Changed from margin: auto */
 	}
 	.visual-container {
-		max-width: 300px;
+		max-width: 400px; /* Increased from 300px */
 	}
 </style>
 {% endblock %} {% block content %}
-<div class="p-4 md:p-8 flex flex-col items-center">
-	<h1 class="text-3xl font-serif text-primary mb-6">Lambdoma Keyboard</h1>
+<div class="flex flex-col md:flex-row gap-10 items-start justify-center w-full">
+	<!-- Lambdoma Grid -->
+	<div class="keyboard-container w-full md:w-3/5">
+		<div
+			class="flex flex-col md:flex-row justify-between items-center w-full mb-4"
+		>
+			<h1 class="text-3xl font-serif text-primary mb-2 md:mb-0">
+				Lambdoma Keyboard
+			</h1>
 
-	<div
-		class="flex flex-col md:flex-row gap-8 items-center justify-center w-full"
-	>
-		<!-- Lambdoma Grid -->
-		<div class="keyboard-container w-full md:w-2/3">
 			<div
-				id="lambdoma-grid"
-				class="lambdoma-grid"
-				style="--grid-size: {{ grid_size }};"
+				class="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto"
 			>
-				{% for r in range(grid_size) %} {% for c in range(grid_size) %} {% set
-				cell = matrix[r][c] %}
-				<div
-					class="lambdoma-cell"
-					style="background-color: {{ cell.color }}30;"
-					{#
-					Add
-					alpha
-					transparency
-					#}
-					title="{{ cell.ratioStr }} | {{ cell.noteName or 'N/A' }} | {{ cell.chakra }} | {{ cell.frequencyHz }} Hz"
-					data-row="{{ r + 1 }}"
-					{#
-					Use
-					1-based
-					for
-					Lissajous
-					#}
-					data-col="{{ c + 1 }}"
-					{#
-					Use
-					1-based
-					for
-					Lissajous
-					#}
-					data-freq="{{ cell.frequencyHz }}"
-					data-ratio="{{ cell.ratioStr }}"
-					data-color="{{ cell.color }}"
-				>
-					{{ cell.ratioStr }}
+				<!-- Therapeutic Presets Dropdown -->
+				<div class="w-full md:w-64">
+					<label
+						for="preset-selector"
+						class="text-sm font-serif text-secondary block mb-1"
+					>
+						Therapeutic Presets
+					</label>
+					<select
+						id="preset-selector"
+						class="w-full p-2 bg-gray-700 text-white rounded text-sm"
+					>
+						<option value="">-- Select a preset --</option>
+						<option value="root-chakra">Root Chakra Activation</option>
+						<option value="heart-opening">Heart Opening</option>
+						<option value="third-eye">Third Eye Clarity</option>
+						<option value="relaxation">Deep Relaxation</option>
+						<option value="energy">Energy Boost</option>
+						<option value="balance">Harmonic Balance</option>
+					</select>
 				</div>
-				{% endfor %} {% endfor %}
+
+				<button
+					id="clear-all-button"
+					class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors w-full md:w-auto mt-2 md:mt-6"
+				>
+					Clear All
+				</button>
 			</div>
 		</div>
-
-		<!-- Visual Display -->
-		<div class="visual-container w-full md:w-1/3 flex flex-col items-center">
-			<h2 class="text-lg font-serif text-secondary mb-4">Harmonic Visual</h2>
-			<canvas id="lissajous-canvas" width="300" height="300"></canvas>
-			<p id="visual-info" class="text-xs text-text-muted mt-2 text-center">
+		<div
+			id="lambdoma-grid"
+			class="lambdoma-grid"
+			style="--grid-size: {{ grid_size }};"
+		>
+			{% for r in range(grid_size) %} {% for c in range(grid_size) %} {% set
+			cell = matrix[r][c] %}
+			<div
+				class="lambdoma-cell"
+				style="background-color: {{ cell.color }}30;"
+				{#
+				Add
+				alpha
+				transparency
+				#}
+				title="{{ cell.ratioStr }} | {{ cell.noteName or 'N/A' }} | {{ cell.chakra }} | {{ cell.frequencyHz }} Hz"
+				data-row="{{ r + 1 }}"
+				{#
+				Use
+				1-based
+				for
+				Lissajous
+				#}
+				data-col="{{ c + 1 }}"
+				{#
+				Use
+				1-based
+				for
+				Lissajous
+				#}
+				data-freq="{{ cell.frequencyHz }}"
+				data-ratio="{{ cell.ratioStr }}"
+				data-color="{{ cell.color }}"
+				data-chakra="{{ cell.chakra }}"
+			>
+				{{ cell.ratioStr }}
+			</div>
+			{% endfor %} {% endfor %}
+		</div>
+		<div class="flex items-center justify-between mt-4">
+			<div class="text-xs text-text-muted">
+				Base Frequency: 256 Hz | Grid Size: {{ grid_size }}x{{ grid_size }}
+			</div>
+			<p id="visual-info" class="text-xs text-text-muted text-center">
 				Click a cell to visualize resonance
 			</p>
-			<div class="mt-2 flex items-center">
-				<input type="checkbox" id="animation-toggle" class="mr-2" checked />
-				<label for="animation-toggle" class="text-xs text-text-muted"
-					>Animate Pattern</label
-				>
-			</div>
 		</div>
 	</div>
 
-	<div class="mt-4 text-xs text-text-muted">
-		Base Frequency: 256 Hz | Grid Size: {{ grid_size }}x{{ grid_size }}
-	</div>
-
-	<div class="mt-4 text-center">
-		<button
-			id="clear-all-button"
-			class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
+	<!-- Visual Display -->
+	<div class="visual-container w-full md:w-2/5 flex flex-col">
+		<div
+			class="flex flex-col md:flex-row justify-between items-center w-full mb-7 mt-4"
 		>
-			Clear All
-		</button>
+			<h1 class="text-3xl font-serif text-primary mb-2 md:mb-0">
+				Harmonic Visual
+			</h1>
+			<div class="flex items-center">
+				<input type="checkbox" id="animation-toggle" class="mr-2" checked />
+				<label for="animation-toggle" class="text-xs text-text-muted"
+					>Animate</label
+				>
+			</div>
+		</div>
+		<canvas id="lissajous-canvas" width="500" height="500"></canvas>
+		<!-- Chakra Visualization -->
+		<div id="chakra-display" class="mt-auto w-full">
+			<h3 class="text-lg font-serif text-secondary mb-3 mt-4">
+				Chakra Resonance
+			</h3>
+			<div id="chakra-indicators" class="flex flex-col gap-2">
+				<!-- Chakra indicators will be added here dynamically -->
+			</div>
+		</div>
 	</div>
 </div>
 
@@ -140,6 +182,8 @@ block head %}
 		const visualInfo = document.getElementById("visual-info");
 		const clearAllButton = document.getElementById("clear-all-button");
 		const animationToggle = document.getElementById("animation-toggle");
+		const chakraIndicators = document.getElementById("chakra-indicators");
+		const presetSelector = document.getElementById("preset-selector");
 		const ctx = canvas.getContext("2d");
 
 		let audioContext;
@@ -147,6 +191,52 @@ block head %}
 		let animationId = null; // Store animation frame ID
 		let phaseOffset = 0; // Phase offset for animation
 		let animationEnabled = true; // Animation state
+		let currentPreset = ""; // Track the current active preset
+		let userInteracted = false; // Flag to track if user manually interacted with grid
+
+		// Chakra data with colors and descriptions
+		const chakraInfo = {
+			Root: { color: "#FF0000", description: "Grounding & Stability" },
+			Sacral: { color: "#FFA500", description: "Creativity & Emotion" },
+			"Solar Plexus": { color: "#FFFF00", description: "Personal Power" },
+			Heart: { color: "#00FF00", description: "Love & Compassion" },
+			Throat: { color: "#00FFFF", description: "Communication" },
+			"Third Eye": { color: "#0000FF", description: "Intuition & Insight" },
+			Crown: { color: "#800080", description: "Spiritual Connection" },
+		};
+
+		// Therapeutic presets - ratios that work well together for specific effects
+		const therapeuticPresets = {
+			"root-chakra": [
+				{ row: 1, col: 4 }, // Example ratio for root chakra
+				{ row: 2, col: 3 }, // Another complementary ratio
+			],
+			"heart-opening": [
+				{ row: 3, col: 4 }, // Example ratio for heart chakra
+				{ row: 4, col: 5 },
+				{ row: 2, col: 3 },
+			],
+			"third-eye": [
+				{ row: 6, col: 7 }, // Example ratio for third eye
+				{ row: 5, col: 6 },
+			],
+			relaxation: [
+				{ row: 2, col: 3 }, // Calming ratio
+				{ row: 3, col: 5 },
+				{ row: 1, col: 2 },
+			],
+			energy: [
+				{ row: 3, col: 2 }, // Energizing ratio
+				{ row: 5, col: 3 },
+				{ row: 8, col: 5 },
+			],
+			balance: [
+				{ row: 1, col: 1 }, // Perfect unison
+				{ row: 2, col: 2 }, // Octave
+				{ row: 3, col: 2 }, // Perfect fifth
+				{ row: 4, col: 3 }, // Perfect fourth
+			],
+		};
 
 		// Initialize animation toggle from checkbox
 		animationEnabled = animationToggle.checked;
@@ -164,17 +254,21 @@ block head %}
 				cancelAnimationFrame(animationId);
 				animationId = null;
 
-				// Render static pattern for the last active cell
-				if (activeCells.size > 0) {
-					const lastCell = Array.from(activeCells.entries()).pop();
-					if (lastCell) {
-						const [cellElement, audioData] = lastCell;
-						const row = parseInt(cellElement.dataset.row);
-						const col = parseInt(cellElement.dataset.col);
-						const color = cellElement.dataset.color;
-						renderLissajous(row, col, ctx, color, 0); // Static pattern with phase 0
-					}
-				}
+				// Render static pattern
+				renderLambdomaVisualization(ctx, 0);
+			}
+		});
+
+		// Add event listener for preset selector
+		presetSelector.addEventListener("change", (e) => {
+			const preset = e.target.value;
+			if (preset) {
+				// Set flag to indicate this is a preset change, not user interaction
+				userInteracted = false;
+
+				// Activate the selected preset
+				activatePreset(preset);
+				currentPreset = preset; // Store the current preset
 			}
 		});
 
@@ -283,8 +377,8 @@ block head %}
 			canvasCtx.globalAlpha = 1.0;
 		}
 
-		// New function to render a true combined Lissajous pattern
-		function renderCombinedLissajous(canvasCtx, phase = 0) {
+		// New function to render a Lambdoma-aligned visualization
+		function renderLambdomaVisualization(canvasCtx, phase = 0) {
 			if (activeCells.size === 0) return;
 
 			const width = canvasCtx.canvas.width;
@@ -295,57 +389,66 @@ block head %}
 
 			canvasCtx.clearRect(0, 0, width, height);
 
-			// If only one cell is active, use the standard Lissajous
+			// If only one cell is active, use a simple Lissajous pattern
 			if (activeCells.size === 1) {
 				const [cellElement, audioData] = Array.from(activeCells.entries())[0];
 				const row = parseInt(cellElement.dataset.row);
 				const col = parseInt(cellElement.dataset.col);
 				const color = cellElement.dataset.color;
-				renderLissajous(row, col, ctx, color, phase);
+				const ratio = cellElement.dataset.ratio;
+
+				// Draw a simple Lissajous for a single frequency
+				drawHarmonicLissajous(row, col, color, ratio, canvasCtx, phase);
+
+				// Display the ratio information
+				canvasCtx.fillStyle = color;
+				canvasCtx.font = "14px sans-serif";
+				canvasCtx.textAlign = "center";
+				canvasCtx.fillText(`Ratio: ${ratio}`, centerX, height - 10);
+
 				return;
 			}
 
-			// For multiple cells, create a true combined visualization
-			// Get all active frequencies
-			const activeFreqs = Array.from(activeCells.keys()).map((cell) => ({
-				x: parseInt(cell.dataset.row),
-				y: parseInt(cell.dataset.col),
-				color: cell.dataset.color,
-			}));
+			// For multiple cells, create a visualization that represents harmonic relationships
+			const activeCellsArray = Array.from(activeCells.keys());
 
-			// Draw the combined pattern
+			// Draw the harmonic pattern
+			drawHarmonicInterference(activeCellsArray, canvasCtx, phase);
+
+			// Draw indicators for each active ratio
+			drawRatioIndicators(activeCellsArray, canvasCtx);
+		}
+
+		// Function to draw a Lissajous pattern for a single ratio
+		function drawHarmonicLissajous(row, col, color, ratio, canvasCtx, phase) {
+			const width = canvasCtx.canvas.width;
+			const height = canvasCtx.canvas.height;
+			const padding = 20;
+			const amplitudeX = width / 2 - padding;
+			const amplitudeY = height / 2 - padding;
+			const centerX = width / 2;
+			const centerY = height / 2;
+
+			// Parse the ratio (format: "n:m")
+			const [numerator, denominator] = ratio.split(":").map(Number);
+
+			// Use the actual ratio values for the Lissajous
+			const xFreq = numerator;
+			const yFreq = denominator;
+
+			const points = 500;
+			const increment = (Math.PI * 2 * Math.max(xFreq, yFreq)) / points;
+
 			canvasCtx.beginPath();
-			canvasCtx.strokeStyle = "#ffffff"; // Use white for combined pattern
-			canvasCtx.lineWidth = 1.5;
+			canvasCtx.strokeStyle = color;
+			canvasCtx.lineWidth = 2;
 
-			const points = 1000; // More points for smoother curve
-			const timeStep = 0.01;
-
-			// Create parametric function that combines all frequencies
-			for (let i = 0; i < points; i++) {
-				const t = i * timeStep;
-
-				// Sum the contributions of all frequencies for x and y
-				let x = 0;
-				let y = 0;
-
-				// Use the first half of frequencies for x and second half for y
-				const halfPoint = Math.ceil(activeFreqs.length / 2);
-
-				for (let j = 0; j < halfPoint; j++) {
-					x += Math.sin(activeFreqs[j].x * t + phase) / halfPoint;
-				}
-
-				for (let j = halfPoint; j < activeFreqs.length; j++) {
-					y +=
-						Math.sin(activeFreqs[j].y * t) / (activeFreqs.length - halfPoint);
-				}
-
-				// Scale to canvas
-				const amplitudeX = width / 2 - padding;
-				const amplitudeY = height / 2 - padding;
-				const screenX = centerX + x * amplitudeX;
-				const screenY = centerY + y * amplitudeY;
+			for (let i = 0; i <= points; i++) {
+				const t = i * increment;
+				const x = amplitudeX * Math.sin(xFreq * t + phase);
+				const y = amplitudeY * Math.sin(yFreq * t);
+				const screenX = centerX + x;
+				const screenY = centerY + y;
 
 				if (i === 0) {
 					canvasCtx.moveTo(screenX, screenY);
@@ -356,16 +459,138 @@ block head %}
 
 			canvasCtx.stroke();
 
-			// Draw small indicators for each active frequency
-			activeFreqs.forEach((freq, index) => {
+			// Draw a reference circle
+			canvasCtx.beginPath();
+			canvasCtx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+			canvasCtx.arc(
+				centerX,
+				centerY,
+				Math.min(amplitudeX, amplitudeY),
+				0,
+				Math.PI * 2
+			);
+			canvasCtx.stroke();
+		}
+
+		// Function to draw harmonic interference patterns for multiple ratios
+		function drawHarmonicInterference(activeCellsArray, canvasCtx, phase) {
+			const width = canvasCtx.canvas.width;
+			const height = canvasCtx.canvas.height;
+			const padding = 20;
+			const centerX = width / 2;
+			const centerY = height / 2;
+			const maxRadius = Math.min(width, height) / 2 - padding;
+
+			// First, draw a reference circle
+			canvasCtx.beginPath();
+			canvasCtx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+			canvasCtx.arc(centerX, centerY, maxRadius, 0, Math.PI * 2);
+			canvasCtx.stroke();
+
+			// Create arrays to store all the ratios
+			const ratios = activeCellsArray.map((cell) => {
+				const ratio = cell.dataset.ratio;
+				const [numerator, denominator] = ratio.split(":").map(Number);
+				return {
+					numerator,
+					denominator,
+					color: cell.dataset.color,
+					ratio: ratio,
+				};
+			});
+
+			// Draw the combined harmonic pattern
+			canvasCtx.beginPath();
+			canvasCtx.strokeStyle = "#ffffff";
+			canvasCtx.lineWidth = 1.5;
+
+			const points = 1000;
+			const timeStep = 0.01;
+
+			// Create a parametric curve based on all active ratios
+			for (let i = 0; i < points; i++) {
+				const t = i * timeStep;
+
+				// Calculate x and y based on all ratios
+				// This approach creates a pattern that represents the interaction of all frequencies
+				let x = 0;
+				let y = 0;
+
+				ratios.forEach((ratio, index) => {
+					// Use a weighted approach based on the ratio values
+					const weight = 1 / ratios.length;
+
+					// For x, use numerators; for y, use denominators
+					x += weight * Math.sin(ratio.numerator * t + phase);
+					y += weight * Math.sin(ratio.denominator * t);
+				});
+
+				// Scale to canvas
+				const screenX = centerX + x * maxRadius;
+				const screenY = centerY + y * maxRadius;
+
+				if (i === 0) {
+					canvasCtx.moveTo(screenX, screenY);
+				} else {
+					canvasCtx.lineTo(screenX, screenY);
+				}
+			}
+
+			canvasCtx.stroke();
+
+			// Draw individual patterns with lower opacity
+			ratios.forEach((ratio) => {
 				canvasCtx.beginPath();
-				canvasCtx.fillStyle = freq.color;
-				canvasCtx.arc(20, 20 + index * 15, 5, 0, Math.PI * 2);
+				canvasCtx.strokeStyle = ratio.color;
+				canvasCtx.globalAlpha = 0.3;
+				canvasCtx.lineWidth = 1;
+
+				for (let i = 0; i < points; i++) {
+					const t = i * timeStep;
+					const x = Math.sin(ratio.numerator * t + phase) * maxRadius * 0.8;
+					const y = Math.sin(ratio.denominator * t) * maxRadius * 0.8;
+
+					const screenX = centerX + x;
+					const screenY = centerY + y;
+
+					if (i === 0) {
+						canvasCtx.moveTo(screenX, screenY);
+					} else {
+						canvasCtx.lineTo(screenX, screenY);
+					}
+				}
+
+				canvasCtx.stroke();
+			});
+
+			canvasCtx.globalAlpha = 1.0;
+		}
+
+		// Function to draw indicators for active ratios
+		function drawRatioIndicators(activeCellsArray, canvasCtx) {
+			const width = canvasCtx.canvas.width;
+
+			// Draw indicators for each active ratio
+			activeCellsArray.forEach((cell, index) => {
+				const ratio = cell.dataset.ratio;
+				const color = cell.dataset.color;
+				const freq = parseFloat(cell.dataset.freq).toFixed(1);
+
+				canvasCtx.fillStyle = color;
+				canvasCtx.font = "12px sans-serif";
+				canvasCtx.textAlign = "left";
+
+				// Draw a colored circle
+				canvasCtx.beginPath();
+				canvasCtx.arc(15, 15 + index * 20, 5, 0, Math.PI * 2);
 				canvasCtx.fill();
+
+				// Draw the ratio text
+				canvasCtx.fillText(`${ratio} (${freq} Hz)`, 25, 19 + index * 20);
 			});
 		}
 
-		// Function to animate the Lissajous pattern
+		// Function to animate the visualization
 		function animateLissajous() {
 			if (activeCells.size === 0 || !animationEnabled) {
 				if (animationId) {
@@ -381,10 +606,144 @@ block head %}
 				phaseOffset -= Math.PI * 2; // Keep within 0-2π range
 			}
 
-			// Render the combined visualization
-			renderCombinedLissajous(ctx, phaseOffset);
+			// Render the Lambdoma visualization
+			renderLambdomaVisualization(ctx, phaseOffset);
 
 			animationId = requestAnimationFrame(animateLissajous);
+		}
+
+		// Function to update chakra indicators based on active cells
+		function updateChakraDisplay() {
+			// Clear existing indicators
+			chakraIndicators.innerHTML = "";
+
+			if (activeCells.size === 0) {
+				chakraIndicators.innerHTML =
+					'<div class="text-xs text-text-muted text-center py-2">No chakra associations active</div>';
+				return;
+			}
+
+			// Collect all active chakras
+			const activeChakras = new Map(); // Use Map to avoid duplicates
+
+			activeCells.forEach((_, cell) => {
+				const chakra = cell.dataset.chakra;
+				if (chakra && chakra !== "N/A") {
+					if (!activeChakras.has(chakra)) {
+						activeChakras.set(chakra, 1);
+					} else {
+						activeChakras.set(chakra, activeChakras.get(chakra) + 1);
+					}
+				}
+			});
+
+			// Create indicator for each active chakra
+			activeChakras.forEach((count, chakra) => {
+				const info = chakraInfo[chakra] || {
+					color: "#CCCCCC",
+					description: "Unknown",
+				};
+
+				const indicator = document.createElement("div");
+				indicator.className =
+					"chakra-indicator flex items-center p-1 rounded transition-all";
+				indicator.style.background = `linear-gradient(to right, ${info.color}20, transparent)`;
+				indicator.style.borderLeft = `3px solid ${info.color}`;
+
+				// Calculate intensity based on count (more cells = stronger intensity)
+				const intensity = Math.min(100, count * 20); // Cap at 100%
+
+				indicator.innerHTML = `
+					<div class="w-4 h-4 rounded-full mr-2" style="background-color: ${info.color}"></div>
+					<div class="flex-1">
+						<div class="flex justify-between items-center">
+							<span class="text-xs font-medium">${chakra}</span>
+							<span class="text-xs opacity-70">${count}×</span>
+						</div>
+						<div class="w-full bg-gray-700 rounded-full h-1 mt-1">
+							<div class="bg-current h-1 rounded-full" style="width: ${intensity}%; background-color: ${info.color}"></div>
+						</div>
+					</div>
+				`;
+				indicator.title = `${chakra}: ${info.description} (${count} active)`;
+				chakraIndicators.appendChild(indicator);
+			});
+
+			// If no chakras are active with names, show a message
+			if (activeChakras.size === 0) {
+				chakraIndicators.innerHTML =
+					'<div class="text-xs text-text-muted text-center py-2">No chakra associations active</div>';
+			}
+		}
+
+		// Function to activate a therapeutic preset
+		function activatePreset(presetName) {
+			// First clear any active cells without resetting the preset selector
+			clearAllCellsWithoutReset();
+
+			// Get the preset configuration
+			const preset = therapeuticPresets[presetName];
+			if (!preset) return;
+
+			// Activate each cell in the preset
+			preset.forEach(({ row, col }) => {
+				// Find the cell in the grid (adjusting for 0-based array vs 1-based data attributes)
+				const cellSelector = `.lambdoma-cell[data-row="${row}"][data-col="${col}"]`;
+				const cell = grid.querySelector(cellSelector);
+
+				if (cell) {
+					// Activate cell without triggering the user interaction flag
+					activateCellWithoutInteraction(cell);
+				}
+			});
+
+			// Update visualization
+			updateVisualization();
+		}
+
+		// Function to activate a cell without marking as user interaction
+		function activateCellWithoutInteraction(cell) {
+			if (activeCells.has(cell)) return; // Already active
+
+			const freq = parseFloat(cell.dataset.freq);
+			const row = parseInt(cell.dataset.row);
+			const col = parseInt(cell.dataset.col);
+			const gridSize = grid.children.length > 64 ? 16 : 8;
+
+			// Determine pan based on column position
+			const panValue = ((col - 1) / (gridSize - 1)) * 2 - 1;
+
+			if (!isNaN(freq) && freq > 0) {
+				const audioNodes = playTone(freq, panValue, Infinity, cell);
+				if (audioNodes) {
+					activeCells.set(cell, audioNodes);
+					cell.classList.add("active");
+				}
+			}
+		}
+
+		// Function to clear all cells without resetting preset selector
+		function clearAllCellsWithoutReset() {
+			activeCells.forEach((audioNodes, cell) => {
+				audioNodes.stop();
+				cell.classList.remove("active");
+			});
+			activeCells.clear();
+
+			// Ensure animation stops
+			if (animationId) {
+				cancelAnimationFrame(animationId);
+				animationId = null;
+			}
+		}
+
+		// Function to reset preset selector
+		function resetPresetSelector() {
+			// Only reset if user manually interacted with the grid
+			if (userInteracted && currentPreset) {
+				currentPreset = "";
+				presetSelector.value = "";
+			}
 		}
 
 		// Function to update the visualization based on active cells
@@ -397,6 +756,7 @@ block head %}
 					cancelAnimationFrame(animationId);
 					animationId = null;
 				}
+				updateChakraDisplay(); // Update chakra display (will be empty)
 				return;
 			}
 
@@ -405,29 +765,28 @@ block head %}
 				activeCells.size > 1 ? "s" : ""
 			}`;
 
+			// Update chakra display
+			updateChakraDisplay();
+
 			// Start animation if enabled and not already running
 			if (animationEnabled && !animationId) {
 				animationId = requestAnimationFrame(animateLissajous);
 			} else if (!animationEnabled) {
-				// Render static combined pattern
-				renderCombinedLissajous(ctx, 0); // Static pattern with phase 0
+				// Render static pattern
+				renderLambdomaVisualization(ctx, 0);
 			}
 		}
 
 		// Function to clear all active cells
 		function clearAllCells() {
-			activeCells.forEach((audioNodes, cell) => {
-				audioNodes.stop();
-				cell.classList.remove("active");
-			});
-			activeCells.clear();
+			clearAllCellsWithoutReset();
 			updateVisualization();
 
-			// Ensure animation stops
-			if (animationId) {
-				cancelAnimationFrame(animationId);
-				animationId = null;
-			}
+			// Set user interaction flag
+			userInteracted = true;
+
+			// Reset preset selector when manually clearing
+			resetPresetSelector();
 		}
 
 		// Clear all button event listener
@@ -437,6 +796,9 @@ block head %}
 		grid.addEventListener("click", (event) => {
 			const cell = event.target.closest(".lambdoma-cell");
 			if (!cell) return;
+
+			// Set flag to indicate user manually interacted with grid
+			userInteracted = true;
 
 			const freq = parseFloat(cell.dataset.freq);
 			const ratioStr = cell.dataset.ratio;
@@ -465,6 +827,9 @@ block head %}
 					}
 				}
 			}
+
+			// Reset preset selector when manually interacting with grid
+			resetPresetSelector();
 
 			updateVisualization();
 		});
